@@ -95,6 +95,12 @@ export const DivisionCard: FC<DivisionCardProps> = ({
         >
           View Matches
         </Button>
+        <Button
+          size="small"
+          onClick={() => navigate(`/admin/divisions/${division.id}/teams`)}
+        >
+          Manage Teams
+        </Button>
       </CardActions>
     </Card>
   );

@@ -86,8 +86,15 @@ export const BulkImportTeamsDialog: FC<BulkImportTeamsDialogProps> = ({
       <DialogContent>
         {/* Instructions */}
         <Alert severity="info" sx={{ mb: 2 }}>
-          Upload a CSV file with columns: <strong>name</strong> (required),{' '}
-          <strong>pool</strong> (optional), <strong>seed</strong> (optional)
+          <strong>CSV Format:</strong>
+          <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+            <li><strong>name</strong> - Required, 3-50 characters</li>
+            <li><strong>pool</strong> - Optional, must match existing pool name exactly</li>
+            <li><strong>seed</strong> - Optional, positive integer</li>
+          </ul>
+          <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+            Tip: Import teams without pools first, then assign pools later.
+          </Typography>
         </Alert>
 
         {/* Download Example */}

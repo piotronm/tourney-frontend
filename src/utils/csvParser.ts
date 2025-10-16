@@ -108,11 +108,13 @@ export const parseCsvText = (text: string): BulkImportTeam[] => {
  * @returns Example CSV text
  */
 export const getExampleCsv = (): string => {
-  return `name,pool,seed
-Team Alpha,Pool A,1
-Team Bravo,Pool A,2
-Team Charlie,Pool B,1
-Team Delta,Pool B,2`;
+  return `name
+Team Alpha
+Team Bravo
+Team Charlie
+Team Delta
+Team Echo
+Team Foxtrot`;
 };
 
 /**

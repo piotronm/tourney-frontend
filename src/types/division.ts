@@ -3,6 +3,8 @@
  * Defines all types related to tournament divisions
  */
 
+import type { Pool } from '@/types/pool';
+
 // Division object from backend
 export interface Division {
   id: number;
@@ -10,6 +12,7 @@ export interface Division {
   createdAt: string;
   updatedAt: string;
   stats: DivisionStats;
+  pools?: Pool[];
 }
 
 // Division statistics

@@ -133,7 +133,7 @@ export const bulkImportTeams = async (
   teams: BulkImportTeam[]
 ): Promise<BulkImportResult> => {
   const response = await adminApiClient.post<BulkImportResult>(
-    `/divisions/${divisionId}/teams/bulk`,
+    `/divisions/${divisionId}/teams/bulk-import`,
     { teams }
   );
   return response.data;
