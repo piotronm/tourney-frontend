@@ -21,6 +21,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   People as PeopleIcon,
   ArrowBack as ArrowBackIcon,
+  AutoFixHigh as AutoFixHighIcon,
 } from '@mui/icons-material';
 import { usePools } from '@/hooks/admin/usePools';
 import { useDeletePool } from '@/hooks/admin/useDeletePool';
@@ -31,6 +32,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { CreatePoolDialog } from '@/components/admin/CreatePoolDialog';
 import { DeletePoolDialog } from '@/components/admin/DeletePoolDialog';
 import { EditPoolDialog } from '@/components/admin/EditPoolDialog';
+import { GenerateMatchesDialog } from '@/components/admin/GenerateMatchesDialog';
 import type { Pool } from '@/types/pool';
 
 /**
@@ -55,6 +57,7 @@ export const DivisionPoolsPage = () => {
   const { mutate: deletePool, isPending: isDeleting } = useDeletePool(parsedDivisionId);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
     pool: Pool | null;
@@ -160,13 +163,23 @@ export const DivisionPoolsPage = () => {
             {division.name}
           </Typography>
         </div>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCreateDialogOpen(true)}
-        >
-          Create Pool
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<AutoFixHighIcon />}
+            onClick={() => setGenerateDialogOpen(true)}
+            disabled={sortedPools.length === 0}
+          >
+            Generate Matches
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            Create Pool
+          </Button>
+        </Box>
       </Box>
 
       {/* Empty State */}
@@ -289,6 +302,14 @@ export const DivisionPoolsPage = () => {
         onClose={() => setDeleteDialog({ open: false, pool: null })}
         onConfirm={handleDeleteConfirm}
         isLoading={isDeleting}
+      />
+
+      {/* Generate Matches Dialog */}
+      <GenerateMatchesDialog
+        open={generateDialogOpen}
+        divisionId={divisionId!}
+        pools={sortedPools}
+        onClose={() => setGenerateDialogOpen(false)}
       />
     </Container>
   );

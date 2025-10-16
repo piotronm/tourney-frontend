@@ -77,7 +77,7 @@ export const GenerateMatchesDialog = ({
             <FormLabel>Tournament Format</FormLabel>
             <RadioGroup
               value={format}
-              onChange={(e) => setFormat(e.target.value as any)}
+              onChange={(e) => setFormat(e.target.value as 'ROUND_ROBIN' | 'SINGLE_ELIM')}
             >
               <FormControlLabel
                 value="ROUND_ROBIN"

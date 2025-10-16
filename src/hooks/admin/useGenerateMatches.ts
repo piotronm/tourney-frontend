@@ -18,11 +18,11 @@ export const useGenerateMatches = (divisionId: string) => {
       // Show success with match count
       toast.success(`Generated ${result.count} matches successfully!`);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Match generation error:', error);
 
       // Show user-friendly error
-      const message = error.response?.data?.message || 'Failed to generate matches';
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to generate matches';
       toast.error(message);
     },
   });
