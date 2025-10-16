@@ -26,8 +26,8 @@ import { useDivisions } from '@/hooks/admin/useDivisions';
 export const DashboardPage = () => {
   const navigate = useNavigate();
 
-  // Fetch all divisions to calculate stats
-  const { data, isLoading, isError } = useDivisions({ limit: 1000 });
+  // Fetch all divisions to calculate stats (max 100 due to backend limit)
+  const { data, isLoading, isError } = useDivisions({ limit: 100 });
 
   const handleCreateDivision = () => {
     navigate('/admin/divisions/new');
