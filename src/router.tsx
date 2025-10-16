@@ -11,6 +11,9 @@ import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { DashboardPage } from '@/pages/admin/DashboardPage';
+import { AdminDivisionsPage } from '@/pages/admin/AdminDivisionsPage';
+import { CreateDivisionPage } from '@/pages/admin/CreateDivisionPage';
+import { EditDivisionPage } from '@/pages/admin/EditDivisionPage';
 
 export const router = createBrowserRouter([
   {
@@ -70,6 +73,19 @@ export const router = createBrowserRouter([
           {
             path: 'dashboard',
             element: <DashboardPage />,
+          },
+          // Division management routes
+          {
+            path: 'divisions',
+            element: <AdminDivisionsPage />,
+          },
+          {
+            path: 'divisions/new',
+            element: <CreateDivisionPage />,
+          },
+          {
+            path: 'divisions/:id/edit',
+            element: <EditDivisionPage />,
           },
           // More admin routes will be added in future phases
         ],
