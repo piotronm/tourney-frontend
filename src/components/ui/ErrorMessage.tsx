@@ -4,7 +4,7 @@ import { ErrorOutline as ErrorIcon, Refresh as RefreshIcon } from '@mui/icons-ma
 interface ErrorMessageProps {
   message?: string;
   error?: Error;
-  onRetry?: (options?: any) => void | Promise<any>;
+  onRetry?: (options?: unknown) => void | Promise<void>;
 }
 
 export const ErrorMessage = ({

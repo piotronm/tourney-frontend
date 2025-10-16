@@ -6,6 +6,11 @@ import { DivisionDetailPage } from './pages/DivisionDetailPage';
 import { StandingsPage } from './pages/StandingsPage';
 import { MatchesPage } from './pages/MatchesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { LoginPage } from '@/pages/LoginPage';
+import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { DashboardPage } from '@/pages/admin/DashboardPage';
 
 export const router = createBrowserRouter([
   {
@@ -38,10 +43,42 @@ export const router = createBrowserRouter([
           },
         ],
       },
+    ],
+  },
+  // Login page (public)
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  // Unauthorized page (public)
+  {
+    path: '/unauthorized',
+    element: <UnauthorizedPage />,
+  },
+  // Protected admin routes
+  {
+    element: <ProtectedRoute requireAdmin={true} />,
+    children: [
       {
-        path: '*',
-        element: <NotFoundPage />,
+        path: '/admin',
+        element: <AdminLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/admin/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: <DashboardPage />,
+          },
+          // More admin routes will be added in future phases
+        ],
       },
     ],
+  },
+  // 404 fallback
+  {
+    path: '*',
+    element: <NotFoundPage />,
   },
 ]);

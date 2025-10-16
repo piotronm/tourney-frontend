@@ -1,0 +1,34 @@
+import type { User } from '@/types/auth';
+import { apiClient } from '@/api/client';
+
+/**
+ * Get the currently authenticated user
+ * @returns User object if authenticated
+ * @throws 401 error if not authenticated
+ */
+export const getCurrentUser = async (): Promise<User> => {
+  const response = await apiClient.get<User>('/auth/me');
+  return response.data;
+};
+
+/**
+ * Log out the current user
+ * Clears the session cookie on the backend
+ */
+export const logout = async (): Promise<void> => {
+  await apiClient.post('/auth/logout');
+};
+
+/**
+ * Initiate Google OAuth login flow
+ * This redirects the browser to the backend auth endpoint
+ */
+export const initiateGoogleLogin = (): void => {
+  // VITE_API_BASE_URL is https://api.bracketiq.win/api/public
+  // We need https://api.bracketiq.win/api/auth/google
+  const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api/public', '');
+  const authUrl = `${baseUrl}/api/auth/google`;
+
+  console.log('Redirecting to OAuth URL:', authUrl); // Debug log
+  window.location.href = authUrl;
+};

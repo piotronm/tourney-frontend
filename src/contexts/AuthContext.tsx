@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setError(null);
       const userData = await getCurrentUser();
       setUser(userData);
-    } catch (err) {
+    } catch {
       // User is not authenticated (401 error is expected)
       setUser(null);
       setError(null); // Don't show error for not being logged in
@@ -91,6 +91,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
  * useAuth hook - Access authentication state and methods
  * @throws Error if used outside of AuthProvider
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
