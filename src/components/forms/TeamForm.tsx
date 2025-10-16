@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -47,6 +48,7 @@ export const TeamForm: FC<TeamFormProps> = ({
     handleSubmit,
     watch,
     control,
+    reset,
     formState: { errors, isDirty },
   } = useForm<TeamFormData>({
     resolver: zodResolver(teamSchema),
@@ -56,6 +58,13 @@ export const TeamForm: FC<TeamFormProps> = ({
       poolSeed: '',
     },
   });
+
+  // Reset form when defaultValues change (important for edit mode)
+  useEffect(() => {
+    if (defaultValues) {
+      reset(defaultValues);
+    }
+  }, [defaultValues, reset]);
 
   const selectedPoolId = watch('poolId');
   const showPoolSeed = selectedPoolId && selectedPoolId !== '';

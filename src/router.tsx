@@ -17,6 +17,7 @@ import { EditDivisionPage } from '@/pages/admin/EditDivisionPage';
 import { DivisionTeamsPage } from '@/pages/admin/DivisionTeamsPage';
 import { AddTeamPage } from '@/pages/admin/AddTeamPage';
 import { EditTeamPage } from '@/pages/admin/EditTeamPage';
+import { DivisionPoolsPage } from '@/pages/admin/DivisionPoolsPage';
 
 export const router = createBrowserRouter([
   {
@@ -102,6 +103,11 @@ export const router = createBrowserRouter([
           {
             path: 'divisions/:divisionId/teams/:teamId/edit',
             element: <EditTeamPage />,
+          },
+          // Pool management routes
+          {
+            path: 'divisions/:id/pools',
+            element: <DivisionPoolsPage />,
           },
         ],
       },

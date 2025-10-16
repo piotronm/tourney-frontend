@@ -20,8 +20,9 @@ const adminApiClient = axios.create({
  * @returns Promise resolving to array of pools
  */
 export const getPools = async (divisionId: number): Promise<Pool[]> => {
-  const response = await apiClient.get<Pool[]>(`/divisions/${divisionId}/pools`);
-  return response.data;
+  const response = await apiClient.get<{ data: Pool[] }>(`/divisions/${divisionId}/pools`);
+  // Backend returns {data: [...]} so extract the array
+  return response.data.data || [];
 };
 
 /**

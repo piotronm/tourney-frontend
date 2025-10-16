@@ -68,10 +68,11 @@ export const getTeams = async (params: TeamListParams): Promise<PaginatedTeams> 
  * @returns Team object
  */
 export const getTeam = async (divisionId: number, teamId: number): Promise<Team> => {
-  const response = await apiClient.get<Team>(
+  const response = await apiClient.get<{ data: Team }>(
     `/divisions/${divisionId}/teams/${teamId}`
   );
-  return response.data;
+  // Backend returns {data: {...}} so extract the team object
+  return response.data.data;
 };
 
 /**
