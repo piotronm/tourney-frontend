@@ -165,6 +165,12 @@ export const DivisionPoolsPage = () => {
         </div>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
+            variant="text"
+            onClick={() => navigate(`/admin/divisions/${divisionId}/matches`)}
+          >
+            View Matches
+          </Button>
+          <Button
             variant="outlined"
             startIcon={<AutoFixHighIcon />}
             onClick={() => setGenerateDialogOpen(true)}

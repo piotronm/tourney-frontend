@@ -18,6 +18,7 @@ import { DivisionTeamsPage } from '@/pages/admin/DivisionTeamsPage';
 import { AddTeamPage } from '@/pages/admin/AddTeamPage';
 import { EditTeamPage } from '@/pages/admin/EditTeamPage';
 import { DivisionPoolsPage } from '@/pages/admin/DivisionPoolsPage';
+import { DivisionMatchesPage } from '@/pages/admin/DivisionMatchesPage';
 
 export const router = createBrowserRouter([
   {
@@ -108,6 +109,11 @@ export const router = createBrowserRouter([
           {
             path: 'divisions/:id/pools',
             element: <DivisionPoolsPage />,
+          },
+          // Match management routes
+          {
+            path: 'divisions/:id/matches',
+            element: <DivisionMatchesPage />,
           },
         ],
       },
