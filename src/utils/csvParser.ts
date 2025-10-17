@@ -46,8 +46,18 @@ export const parseCsvText = (text: string): BulkImportTeam[] => {
   // Parse header
   const header = lines[0].split(',').map(h => h.trim().toLowerCase());
   const nameIndex = header.indexOf('name');
-  const poolIndex = header.indexOf('pool');
-  const seedIndex = header.indexOf('seed');
+
+  // Support both 'pool' and 'poolname' column names
+  let poolIndex = header.indexOf('poolname');
+  if (poolIndex === -1) {
+    poolIndex = header.indexOf('pool');
+  }
+
+  // Support both 'seed' and 'poolseed' column names
+  let seedIndex = header.indexOf('poolseed');
+  if (seedIndex === -1) {
+    seedIndex = header.indexOf('seed');
+  }
 
   if (nameIndex === -1) {
     throw new Error('CSV must have a "name" column');
@@ -108,7 +118,7 @@ export const parseCsvText = (text: string): BulkImportTeam[] => {
  * @returns Example CSV text
  */
 export const getExampleCsv = (): string => {
-  return `name,pool,seed
+  return `name,poolName,poolSeed
 Team Alpha,Pool A,1
 Team Bravo,Pool A,2
 Team Charlie,Pool B,1
@@ -117,7 +127,8 @@ Team Echo,Pool C,1
 Team Foxtrot,Pool C,2
 
 # Note: Pools will be created automatically if they don't exist
-# Pool names are case-insensitive (Pool A = pool a)`;
+# Pool names are case-insensitive (Pool A = pool a)
+# Column names: use 'poolName' (or 'pool') and 'poolSeed' (or 'seed')`;
 };
 
 /**

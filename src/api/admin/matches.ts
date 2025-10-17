@@ -1,4 +1,10 @@
-import type { Match, GenerateMatchesDto, GenerateMatchesResponse } from '@/api/types';
+import type {
+  Match,
+  GenerateMatchesDto,
+  GenerateMatchesResponse,
+  UpdateMatchScoreRequest,
+  UpdateMatchScoreResponse
+} from '@/api/types';
 import axios from 'axios';
 
 // Admin API client for authenticated mutations (POST/PUT/DELETE)
@@ -51,4 +57,32 @@ export const updateMatch = (
  */
 export const deleteMatch = (matchId: string): Promise<void> => {
   return adminApiClient.delete(`/matches/${matchId}`).then((res) => res.data);
+};
+
+/**
+ * Update match score (Phase 6)
+ * @param matchId - Match ID
+ * @param data - Score update data (scoreJson, status, winnerTeamId, notes)
+ * @returns Response with success flag and updated match
+ */
+export const updateMatchScore = async (
+  matchId: number,
+  data: UpdateMatchScoreRequest
+): Promise<UpdateMatchScoreResponse> => {
+  const response = await adminApiClient.put<UpdateMatchScoreResponse>(
+    `/matches/${matchId}/score`,
+    data
+  );
+  return response.data;
+};
+
+/**
+ * Get single match by ID (Phase 6)
+ * @param matchId - Match ID
+ * @returns Match object
+ */
+export const getMatch = async (matchId: number): Promise<Match> => {
+  const response = await adminApiClient.get<{ data: Match }>(`/matches/${matchId}`);
+  // Backend returns {data: {...}} so extract the match object
+  return response.data.data;
 };

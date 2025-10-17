@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import type { Match } from '@/api/types';
+import { ScoreEntryDialog } from '@/components/admin/ScoreEntryDialog';
 
 interface Props {
   match: Match;
@@ -21,6 +22,7 @@ interface Props {
 
 export const MatchCard = ({ match, showActions = false }: Props) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -29,6 +31,11 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleEnterScore = () => {
+    setScoreDialogOpen(true);
+    handleClose();
   };
 
   const isCompleted = match.status === 'completed';
@@ -88,7 +95,7 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
               </IconButton>
               <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
                 <MenuItem onClick={handleClose}>Edit Match</MenuItem>
-                <MenuItem onClick={handleClose}>Enter Score</MenuItem>
+                <MenuItem onClick={handleEnterScore}>Enter Score</MenuItem>
                 <MenuItem onClick={handleClose} sx={{ color: 'error.main' }}>
                   Delete Match
                 </MenuItem>
@@ -176,6 +183,16 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
           )}
         </Box>
       </CardContent>
+
+      {/* Score Entry Dialog */}
+      {showActions && (
+        <ScoreEntryDialog
+          open={scoreDialogOpen}
+          onClose={() => setScoreDialogOpen(false)}
+          match={match}
+          divisionId={match.divisionId}
+        />
+      )}
     </Card>
   );
 };

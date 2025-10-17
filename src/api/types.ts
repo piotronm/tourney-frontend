@@ -34,23 +34,67 @@ export interface DivisionDetail extends Division {
 }
 
 // Match types
+
+/**
+ * Match status enum
+ */
+export type MatchStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled'
+  | 'walkover'
+  | 'forfeit';
+
+/**
+ * Individual game score within a match
+ */
+export interface GameScore {
+  teamA: number;
+  teamB: number;
+}
+
+/**
+ * Match score structure (supports multiple games)
+ */
+export interface MatchScore {
+  games: GameScore[];
+  notes?: string;
+}
+
+/**
+ * Match object from backend
+ */
 export interface Match {
-  id: string;
-  divisionId: string;
-  poolId: string | null;
+  id: number;
+  divisionId: number;
+  poolId: number | null;
   poolName: string | null;
   roundNumber: number;
   matchNumber: number;
-  teamAId: string;
+
+  // Team info
+  teamAId: number;
   teamAName: string;
-  teamBId: string | null; // Null for BYE matches
+  teamBId: number | null; // Null for BYE matches
   teamBName: string | null;
-  scoreA: number | null;
-  scoreB: number | null;
-  status: 'pending' | 'completed' | 'in_progress';
-  slotIndex: number | null;
-  courtLabel: string | null;
+
+  // Scores (Phase 6: New JSON format + legacy fields)
+  scoreJson: MatchScore | null;
+  scoreA: number | null; // Legacy (deprecated)
+  scoreB: number | null; // Legacy (deprecated)
+
+  // Status
+  status: MatchStatus;
+  winnerTeamId: number | null;
+
+  // Scheduling
   scheduledAt: string | null;
+  courtNumber: number | null;
+  slotIndex: number | null;
+  courtLabel: string | null; // Computed field
+
+  // Metadata
   createdAt: string;
   updatedAt: string;
 }
@@ -97,4 +141,24 @@ export interface StandingsResponse {
   divisionId: number;
   divisionName: string;
   pools: PoolStandings[];
+}
+
+// Phase 6: Score Entry Types
+
+/**
+ * Request payload for updating match score
+ */
+export interface UpdateMatchScoreRequest {
+  scoreJson?: MatchScore;
+  status?: MatchStatus;
+  winnerTeamId?: number;
+  notes?: string;
+}
+
+/**
+ * Response from updating match score
+ */
+export interface UpdateMatchScoreResponse {
+  success: boolean;
+  match: Match;
 }
