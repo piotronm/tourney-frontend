@@ -11,9 +11,13 @@ import {
   MenuItem,
   Stack,
 } from '@mui/material';
-import { MoreVert as MoreVertIcon } from '@mui/icons-material';
+import {
+  MoreVert as MoreVertIcon,
+  EmojiEvents as EmojiEventsIcon,
+} from '@mui/icons-material';
 import type { Match } from '@/api/types';
 import { ScoreEntryDialog } from '@/components/admin/ScoreEntryDialog';
+import { MatchStatusChip } from './MatchStatusChip';
 
 interface Props {
   match: Match;
@@ -41,37 +45,74 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
   const isCompleted = match.status === 'completed';
   const isBye = !match.teamBName;
 
-  // Status color mapping
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'success';
-      case 'in_progress':
-        return 'warning';
-      case 'pending':
-        return 'default';
-      default:
-        return 'default';
+  // Render game-by-game scores
+  const renderScores = () => {
+    if (!match.scoreJson || !match.scoreJson.games || match.scoreJson.games.length === 0) {
+      return null;
     }
+
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+          Scores:
+        </Typography>
+        <Stack direction="row" spacing={2} flexWrap="wrap">
+          {match.scoreJson.games.map((game, idx) => (
+            <Box key={idx}>
+              <Typography variant="body2" fontWeight="medium">
+                Game {idx + 1}: {game.teamA}-{game.teamB}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+      </Box>
+    );
   };
 
-  // Status label mapping
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'Final';
-      case 'in_progress':
-        return 'In Progress';
-      case 'pending':
-        return 'Scheduled';
-      default:
-        return status;
-    }
+  // Display winner with trophy icon
+  const getWinnerDisplay = () => {
+    if (!match.winnerTeamId) return null;
+
+    const winnerName = match.winnerTeamId === match.teamAId
+      ? match.teamAName
+      : match.teamBName;
+
+    return (
+      <Chip
+        label={`Winner: ${winnerName}`}
+        size="small"
+        color="success"
+        icon={<EmojiEventsIcon />}
+        sx={{ mt: 1 }}
+      />
+    );
   };
 
   return (
     <Card>
-      <CardContent>
+      <CardContent sx={{ position: 'relative' }}>
+        {/* LIVE badge for in-progress matches */}
+        {match.status === 'in_progress' && (
+          <Chip
+            label="🔴 LIVE"
+            color="error"
+            size="small"
+            aria-label="Match in progress"
+            role="status"
+            sx={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              fontWeight: 'bold',
+              animation: 'pulse 2s infinite',
+              '@keyframes pulse': {
+                '0%, 100%': { opacity: 1 },
+                '50%': { opacity: 0.7 },
+              },
+            }}
+          />
+        )}
+
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'flex-start' }}>
           <Stack direction="row" spacing={1} alignItems="center">
             {match.poolName && (
@@ -80,11 +121,7 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
             <Typography variant="caption" color="text.secondary">
               Round {match.roundNumber} • Match {match.matchNumber}
             </Typography>
-            <Chip
-              label={getStatusLabel(match.status)}
-              size="small"
-              color={getStatusColor(match.status)}
-            />
+            <MatchStatusChip status={match.status} />
           </Stack>
 
           {/* Admin Actions Menu */}
@@ -156,6 +193,12 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
             )}
           </Box>
         )}
+
+        {/* Game-by-game scores */}
+        {renderScores()}
+
+        {/* Winner display */}
+        {getWinnerDisplay()}
 
         <Divider sx={{ my: 1 }} />
 
