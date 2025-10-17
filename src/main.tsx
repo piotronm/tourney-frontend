@@ -14,10 +14,10 @@ import { theme } from './theme';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000,
-      gcTime: 5 * 60 * 1000,
+      staleTime: 0, // Instant updates for admin operations (was: 30 * 1000)
+      gcTime: 60 * 1000, // 1 minute garbage collection
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true, // Auto-refresh on window focus (was: false)
     },
   },
 });

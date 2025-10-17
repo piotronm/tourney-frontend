@@ -13,6 +13,12 @@ import {
   Container,
   Breadcrumbs,
   Link,
+  Menu,
+  MenuItem,
+  ButtonGroup,
+  Checkbox,
+  Toolbar,
+  Paper,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,6 +31,8 @@ import {
 } from '@mui/icons-material';
 import { usePools } from '@/hooks/admin/usePools';
 import { useDeletePool } from '@/hooks/admin/useDeletePool';
+import { useBulkCreatePools } from '@/hooks/admin/useBulkCreatePools';
+import { useBulkDeletePools } from '@/hooks/admin/useBulkDeletePools';
 import { useDivision } from '@/hooks/useDivision';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
@@ -33,6 +41,7 @@ import { CreatePoolDialog } from '@/components/admin/CreatePoolDialog';
 import { DeletePoolDialog } from '@/components/admin/DeletePoolDialog';
 import { EditPoolDialog } from '@/components/admin/EditPoolDialog';
 import { GenerateMatchesDialog } from '@/components/admin/GenerateMatchesDialog';
+import { BulkDeletePoolsDialog } from '@/components/admin/BulkDeletePoolsDialog';
 import type { Pool } from '@/types/pool';
 
 /**
@@ -53,11 +62,17 @@ export const DivisionPoolsPage = () => {
   const parsedDivisionId = parseInt(divisionId!, 10);
 
   const { data: division, isLoading: divisionLoading } = useDivision(parsedDivisionId);
-  const { data: pools, isLoading: poolsLoading, error } = usePools(parsedDivisionId);
+  const { data: pools, isLoading: poolsLoading, error } = usePools(parsedDivisionId, { isAdmin: true });
   const { mutate: deletePool, isPending: isDeleting } = useDeletePool(parsedDivisionId);
+  const { mutate: bulkCreatePools, isPending: isCreatingBulk } = useBulkCreatePools(parsedDivisionId);
+  const { mutate: bulkDeletePools, isPending: isDeletingBulk } = useBulkDeletePools(parsedDivisionId);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [templateMenuAnchor, setTemplateMenuAnchor] = useState<null | HTMLElement>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPoolIds, setSelectedPoolIds] = useState<Set<number>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
     pool: Pool | null;
@@ -122,6 +137,42 @@ export const DivisionPoolsPage = () => {
     }
   };
 
+  const handleTemplateCreate = (count: number) => {
+    setTemplateMenuAnchor(null);
+    bulkCreatePools(count);
+  };
+
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedPoolIds(new Set());
+  };
+
+  const togglePoolSelection = (poolId: number) => {
+    const newSet = new Set(selectedPoolIds);
+    if (newSet.has(poolId)) {
+      newSet.delete(poolId);
+    } else {
+      newSet.add(poolId);
+    }
+    setSelectedPoolIds(newSet);
+  };
+
+  const handleBulkDeleteClick = () => {
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const handleBulkDeleteConfirm = () => {
+    bulkDeletePools(Array.from(selectedPoolIds), {
+      onSuccess: () => {
+        setSelectedPoolIds(new Set());
+        setSelectionMode(false);
+        setBulkDeleteDialogOpen(false);
+      },
+    });
+  };
+
+  const selectedPools = pools?.filter(p => selectedPoolIds.has(p.id)) || [];
+
   return (
     <Container maxWidth="lg">
       {/* Breadcrumbs */}
@@ -178,15 +229,71 @@ export const DivisionPoolsPage = () => {
           >
             Generate Matches
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
+          <ButtonGroup variant="contained">
+            <Button
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialogOpen(true)}
+              disabled={isCreatingBulk}
+            >
+              Create Pool
+            </Button>
+            <Button
+              size="small"
+              onClick={(e) => setTemplateMenuAnchor(e.currentTarget)}
+              disabled={isCreatingBulk}
+            >
+              <ExpandMoreIcon />
+            </Button>
+          </ButtonGroup>
+          <Menu
+            anchorEl={templateMenuAnchor}
+            open={Boolean(templateMenuAnchor)}
+            onClose={() => setTemplateMenuAnchor(null)}
           >
-            Create Pool
+            <MenuItem onClick={() => handleTemplateCreate(2)}>
+              Create 2 Pools (A, B)
+            </MenuItem>
+            <MenuItem onClick={() => handleTemplateCreate(4)}>
+              Create 4 Pools (A, B, C, D)
+            </MenuItem>
+            <MenuItem onClick={() => handleTemplateCreate(8)}>
+              Create 8 Pools (A-H)
+            </MenuItem>
+            <MenuItem onClick={() => handleTemplateCreate(16)}>
+              Create 16 Pools (A-P)
+            </MenuItem>
+          </Menu>
+          <Button
+            variant={selectionMode ? 'contained' : 'outlined'}
+            color={selectionMode ? 'secondary' : 'primary'}
+            onClick={toggleSelectionMode}
+            disabled={sortedPools.length === 0 || isDeletingBulk}
+            sx={{ ml: 2 }}
+          >
+            {selectionMode ? 'Cancel Selection' : 'Select Multiple'}
           </Button>
         </Box>
       </Box>
+
+      {/* Selection toolbar - shows when pools are selected */}
+      {selectionMode && selectedPoolIds.size > 0 && (
+        <Paper elevation={2} sx={{ mb: 2 }}>
+          <Toolbar sx={{ bgcolor: 'primary.light' }}>
+            <Typography sx={{ flex: 1 }} variant="h6" component="div">
+              {selectedPoolIds.size} pool(s) selected
+            </Typography>
+            <Button
+              startIcon={<DeleteIcon />}
+              color="error"
+              variant="contained"
+              onClick={handleBulkDeleteClick}
+              disabled={isDeletingBulk}
+            >
+              Delete Selected
+            </Button>
+          </Toolbar>
+        </Paper>
+      )}
 
       {/* Empty State */}
       {sortedPools.length === 0 && (
@@ -215,6 +322,14 @@ export const DivisionPoolsPage = () => {
               <Accordion key={pool.id} defaultExpanded>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                    {selectionMode && (
+                      <Checkbox
+                        checked={selectedPoolIds.has(pool.id)}
+                        onChange={() => togglePoolSelection(pool.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{ mr: 1 }}
+                      />
+                    )}
                     <Chip label={pool.label} color="primary" />
                     <Typography variant="h6">{pool.name}</Typography>
                     <Chip
@@ -316,6 +431,15 @@ export const DivisionPoolsPage = () => {
         divisionId={divisionId!}
         pools={sortedPools}
         onClose={() => setGenerateDialogOpen(false)}
+      />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <BulkDeletePoolsDialog
+        open={bulkDeleteDialogOpen}
+        pools={selectedPools}
+        onClose={() => setBulkDeleteDialogOpen(false)}
+        onConfirm={handleBulkDeleteConfirm}
+        isLoading={isDeletingBulk}
       />
     </Container>
   );

@@ -64,3 +64,20 @@ export const updatePool = async (
 export const deletePool = async (poolId: number): Promise<void> => {
   await adminApiClient.delete(`/pools/${poolId}`);
 };
+
+/**
+ * Bulk create pools in a division
+ * @param divisionId - Division ID
+ * @param pools - Array of pool templates to create
+ * @returns Promise resolving to created pools
+ */
+export const bulkCreatePools = async (
+  divisionId: number,
+  pools: CreatePoolDto[]
+): Promise<{ message: string; pools: Pool[] }> => {
+  const response = await adminApiClient.post<{ message: string; pools: Pool[] }>(
+    `/divisions/${divisionId}/pools/bulk`,
+    { pools }
+  );
+  return response.data;
+};
