@@ -108,13 +108,16 @@ export const parseCsvText = (text: string): BulkImportTeam[] => {
  * @returns Example CSV text
  */
 export const getExampleCsv = (): string => {
-  return `name
-Team Alpha
-Team Bravo
-Team Charlie
-Team Delta
-Team Echo
-Team Foxtrot`;
+  return `name,pool,seed
+Team Alpha,Pool A,1
+Team Bravo,Pool A,2
+Team Charlie,Pool B,1
+Team Delta,Pool B,2
+Team Echo,Pool C,1
+Team Foxtrot,Pool C,2
+
+# Note: Pools will be created automatically if they don't exist
+# Pool names are case-insensitive (Pool A = pool a)`;
 };
 
 /**

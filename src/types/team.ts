@@ -63,12 +63,12 @@ export interface BulkImportTeam {
 }
 
 export interface BulkImportResult {
-  success: boolean;
   created: number;
-  updated: number;
+  createdPools?: string[];
   errors: Array<{
     row: number;
     message: string;
+    team?: string;
   }>;
 }
 

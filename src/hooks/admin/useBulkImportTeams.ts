@@ -20,13 +20,30 @@ export const useBulkImportTeams = () => {
         queryKey: ['teams', { divisionId: variables.divisionId }]
       });
 
+      // Invalidate pools list (important for auto-created pools)
+      queryClient.invalidateQueries({
+        queryKey: ['pools', variables.divisionId]
+      });
+
       // Log full result for debugging
       console.log('Bulk import result:', result);
 
+      // Show created pools notification
+      if (result.createdPools && result.createdPools.length > 0) {
+        const poolList = result.createdPools.join(', ');
+        toast.info(
+          `📊 Auto-created ${result.createdPools.length} pool(s): ${poolList}`,
+          { duration: 6000 }
+        );
+      }
+
       // Show detailed success message
       if (result.errors.length === 0) {
+        const poolInfo = result.createdPools && result.createdPools.length > 0
+          ? ` and created ${result.createdPools.length} pool(s)`
+          : '';
         toast.success(
-          `Successfully imported ${result.created} teams!`
+          `Successfully imported ${result.created} teams${poolInfo}!`
         );
       } else {
         // Show detailed error information

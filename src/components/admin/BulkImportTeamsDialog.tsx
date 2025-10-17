@@ -89,11 +89,16 @@ export const BulkImportTeamsDialog: FC<BulkImportTeamsDialogProps> = ({
           <strong>CSV Format:</strong>
           <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
             <li><strong>name</strong> - Required, 3-50 characters</li>
-            <li><strong>pool</strong> - Optional, must match existing pool name exactly</li>
-            <li><strong>seed</strong> - Optional, positive integer</li>
+            <li><strong>pool</strong> - Optional, pool name (e.g., "Pool A", "Pool B")
+              <ul style={{ marginTop: '2px', paddingLeft: '20px' }}>
+                <li>✨ Pools will be auto-created if they don't exist!</li>
+                <li>🔄 Case-insensitive matching (Pool A = pool a = POOL A)</li>
+              </ul>
+            </li>
+            <li><strong>seed</strong> - Optional, positive integer for pool seeding</li>
           </ul>
           <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-            Tip: Import teams without pools first, then assign pools later.
+            💡 <strong>Tips:</strong> You don't need to create pools before importing! Pool names from CSV will be created automatically. Existing pools will be matched case-insensitively.
           </Typography>
         </Alert>
 
