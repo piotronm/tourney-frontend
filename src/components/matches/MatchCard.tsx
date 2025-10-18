@@ -18,6 +18,7 @@ import {
 import type { Match } from '@/api/types';
 import { ScoreEntryDialog } from '@/components/admin/ScoreEntryDialog';
 import { MatchStatusChip } from './MatchStatusChip';
+import { useDeleteMatch } from '@/hooks/admin/useDeleteMatch';
 
 interface Props {
   match: Match;
@@ -28,6 +29,7 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
   const open = Boolean(anchorEl);
+  const { mutate: deleteMatch } = useDeleteMatch();
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -39,6 +41,13 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
 
   const handleEnterScore = () => {
     setScoreDialogOpen(true);
+    handleClose();
+  };
+
+  const handleDeleteMatch = () => {
+    if (window.confirm(`Delete this match? This action cannot be undone.`)) {
+      deleteMatch(match.id);
+    }
     handleClose();
   };
 
@@ -133,7 +142,7 @@ export const MatchCard = ({ match, showActions = false }: Props) => {
               <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
                 <MenuItem onClick={handleClose}>Edit Match</MenuItem>
                 <MenuItem onClick={handleEnterScore}>Enter Score</MenuItem>
-                <MenuItem onClick={handleClose} sx={{ color: 'error.main' }}>
+                <MenuItem onClick={handleDeleteMatch} sx={{ color: 'error.main' }}>
                   Delete Match
                 </MenuItem>
               </Menu>

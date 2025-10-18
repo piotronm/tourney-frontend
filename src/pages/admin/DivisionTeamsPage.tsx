@@ -30,7 +30,9 @@ import type { Team, BulkImportTeam } from '@/types/team';
 
 /**
  * Division Teams Page
- * Main page for managing teams within a division
+ * UPDATED: Phase 4B - Tournament Hierarchy
+ *
+ * Main page for managing teams within a division in a tournament
  *
  * Features:
  * - List all teams in division
@@ -40,11 +42,13 @@ import type { Team, BulkImportTeam } from '@/types/team';
  * - Bulk import teams from CSV
  * - Edit/delete teams
  * - Pagination
+ * - Tournament context breadcrumbs
  */
 export const DivisionTeamsPage = () => {
-  const { divisionId } = useParams<{ divisionId: string }>();
+  const { tournamentId, id } = useParams<{ tournamentId: string; id: string }>();
   const navigate = useNavigate();
-  const parsedDivisionId = parseInt(divisionId!, 10);
+  const parsedTournamentId = tournamentId ? parseInt(tournamentId, 10) : undefined;
+  const parsedDivisionId = id ? parseInt(id, 10) : undefined;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -56,10 +60,10 @@ export const DivisionTeamsPage = () => {
   const offset = (page - 1) * limit;
 
   // Fetch division info
-  const { data: division, isLoading: isDivisionLoading } = useDivision(parsedDivisionId);
+  const { data: division, isLoading: isDivisionLoading } = useDivision(parsedTournamentId, parsedDivisionId);
 
   // Fetch teams
-  const { data, isLoading, isError, error } = useTeams({
+  const { data, isLoading, isError, error } = useTeams(parsedTournamentId, {
     divisionId: parsedDivisionId,
     limit,
     offset,
@@ -86,11 +90,11 @@ export const DivisionTeamsPage = () => {
   };
 
   const handleAddTeam = () => {
-    navigate(`/admin/divisions/${divisionId}/teams/new`);
+    navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/teams/new`);
   };
 
   const handleEditTeam = (teamId: number) => {
-    navigate(`/admin/divisions/${divisionId}/teams/${teamId}/edit`);
+    navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/teams/${teamId}/edit`);
   };
 
   const handleDeleteClick = (team: Team) => {
@@ -98,10 +102,10 @@ export const DivisionTeamsPage = () => {
   };
 
   const handleDeleteConfirm = () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !parsedTournamentId || !parsedDivisionId) return;
 
     deleteTeam(
-      { divisionId: parsedDivisionId, teamId: deleteTarget.id },
+      { tournamentId: parsedTournamentId, divisionId: parsedDivisionId, teamId: deleteTarget.id },
       {
         onSuccess: () => {
           setDeleteTarget(null);
@@ -115,8 +119,10 @@ export const DivisionTeamsPage = () => {
   };
 
   const handleImport = (teams: BulkImportTeam[]) => {
+    if (!parsedTournamentId || !parsedDivisionId) return;
+
     bulkImport(
-      { divisionId: parsedDivisionId, teams },
+      { tournamentId: parsedTournamentId, divisionId: parsedDivisionId, teams },
       {
         onSuccess: (result) => {
           // Only close dialog if no errors
@@ -146,28 +152,41 @@ export const DivisionTeamsPage = () => {
         <Link
           component="button"
           variant="body2"
-          onClick={() => navigate('/admin/dashboard')}
+          onClick={() => navigate('/admin/tournaments')}
         >
-          Dashboard
+          Tournaments
         </Link>
         <Link
           component="button"
           variant="body2"
-          onClick={() => navigate('/admin/divisions')}
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}`)}
+        >
+          Tournament
+        </Link>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions`)}
         >
           Divisions
         </Link>
-        <Typography color="text.primary">{division?.name}</Typography>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
+        >
+          {division?.name}
+        </Link>
         <Typography color="text.primary">Teams</Typography>
       </Breadcrumbs>
 
       {/* Back Button */}
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/admin/divisions')}
+        onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
         sx={{ mb: 2 }}
       >
-        Back to Divisions
+        Back to Division
       </Button>
 
       {/* Header */}

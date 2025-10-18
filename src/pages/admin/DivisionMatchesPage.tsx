@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -10,22 +10,34 @@ import {
   Stack,
   Button,
   Container,
+  Breadcrumbs,
+  Link,
 } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useMatches } from '@/hooks/useMatches';
 import { usePools } from '@/hooks/admin/usePools';
-import { useDivision } from '@/hooks/useDivision';
+import { useDivision } from '@/hooks/admin/useDivision';
+import { useTournament } from '@/hooks/admin/useTournament';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MatchCard } from '@/components/matches/MatchCard';
 
+/**
+ * Division Matches Page
+ * UPDATED: Phase 4B - Tournament Hierarchy
+ *
+ * Displays and filters matches for a division within a tournament
+ */
 export const DivisionMatchesPage = () => {
-  const { id: divisionId } = useParams<{ id: string }>();
-  const parsedDivisionId = parseInt(divisionId!, 10);
+  const { tournamentId, id } = useParams<{ tournamentId: string; id: string }>();
+  const navigate = useNavigate();
+  const parsedTournamentId = tournamentId ? parseInt(tournamentId, 10) : undefined;
+  const parsedDivisionId = id ? parseInt(id, 10) : undefined;
 
-  const { data: division, isLoading: divisionLoading } = useDivision(parsedDivisionId);
-  const { data: pools } = usePools(parsedDivisionId);
+  const { data: tournament } = useTournament(parsedTournamentId);
+  const { data: division, isLoading: divisionLoading } = useDivision(parsedTournamentId, parsedDivisionId);
+  const { data: pools } = usePools(parsedTournamentId, parsedDivisionId);
 
   const [selectedPoolId, setSelectedPoolId] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -35,7 +47,7 @@ export const DivisionMatchesPage = () => {
     isLoading: matchesLoading,
     error,
     refetch,
-  } = useMatches(parsedDivisionId, {
+  } = useMatches(parsedTournamentId, parsedDivisionId, {
     poolId: selectedPoolId === 'all' ? undefined : Number(selectedPoolId),
     status: selectedStatus === 'all' ? undefined : (selectedStatus as 'pending' | 'completed'),
   });
@@ -75,6 +87,50 @@ export const DivisionMatchesPage = () => {
 
   return (
     <Container maxWidth="lg">
+      {/* Breadcrumbs */}
+      <Breadcrumbs sx={{ mb: 2 }}>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate('/admin/tournaments')}
+        >
+          Tournaments
+        </Link>
+        {tournament && (
+          <Link
+            component="button"
+            variant="body2"
+            onClick={() => navigate(`/admin/tournaments/${tournamentId}`)}
+          >
+            {tournament.name}
+          </Link>
+        )}
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions`)}
+        >
+          Divisions
+        </Link>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
+        >
+          {division?.name}
+        </Link>
+        <Typography color="text.primary">Matches</Typography>
+      </Breadcrumbs>
+
+      {/* Back Button */}
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
+        sx={{ mb: 2 }}
+      >
+        Back to Division
+      </Button>
+
       {/* Header */}
       <Box
         sx={{
@@ -89,7 +145,7 @@ export const DivisionMatchesPage = () => {
             Manage Matches
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {division.name}
+            {division?.name}
           </Typography>
         </div>
         <Button

@@ -1,35 +1,35 @@
+/**
+ * useUpdateTeam Hook
+ * Updates an existing team
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateTeam } from '@/api/admin/teams';
 import type { UpdateTeamDto } from '@/types/team';
 import { toast } from 'sonner';
 
-/**
- * Hook to update existing team
- *
- * @returns TanStack Query mutation object
- */
+interface UpdateTeamParams {
+  tournamentId: number;
+  divisionId: number;
+  teamId: number;
+  data: UpdateTeamDto;
+}
+
 export const useUpdateTeam = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      divisionId,
-      teamId,
-      data,
-    }: {
-      divisionId: number;
-      teamId: number;
-      data: UpdateTeamDto;
-    }) => updateTeam(divisionId, teamId, data),
+    mutationFn: ({ tournamentId, divisionId, teamId, data }: UpdateTeamParams) =>
+      updateTeam(tournamentId, divisionId, teamId, data),
     onSuccess: (team, variables) => {
-      // Invalidate both list and single team queries
+      // Invalidate teams list
       queryClient.invalidateQueries({
-        queryKey: ['teams', { divisionId: variables.divisionId }]
+        queryKey: ['admin-teams', variables.tournamentId],
       });
+      // Invalidate specific team
       queryClient.invalidateQueries({
-        queryKey: ['team', variables.divisionId, variables.teamId]
+        queryKey: ['admin-team', variables.tournamentId, variables.divisionId, team.id],
       });
-
       toast.success(`Team "${team.name}" updated successfully!`);
     },
     onError: (error: Error) => {

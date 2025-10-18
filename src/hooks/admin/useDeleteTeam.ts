@@ -1,24 +1,33 @@
+/**
+ * useDeleteTeam Hook
+ * Deletes a team from a division
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteTeam } from '@/api/admin/teams';
 import { toast } from 'sonner';
 
-/**
- * Hook to delete team
- *
- * @returns TanStack Query mutation object
- */
+interface DeleteTeamParams {
+  tournamentId: number;
+  divisionId: number;
+  teamId: number;
+}
+
 export const useDeleteTeam = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ divisionId, teamId }: { divisionId: number; teamId: number }) =>
-      deleteTeam(divisionId, teamId),
+    mutationFn: ({ tournamentId, divisionId, teamId }: DeleteTeamParams) =>
+      deleteTeam(tournamentId, divisionId, teamId),
     onSuccess: (_, variables) => {
       // Invalidate teams list
       queryClient.invalidateQueries({
-        queryKey: ['teams', { divisionId: variables.divisionId }]
+        queryKey: ['admin-teams', variables.tournamentId],
       });
-
+      // Invalidate division details (team count changed)
+      queryClient.invalidateQueries({
+        queryKey: ['admin-division', variables.tournamentId, variables.divisionId],
+      });
       toast.success('Team deleted successfully');
     },
     onError: (error: Error) => {

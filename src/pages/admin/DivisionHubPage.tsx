@@ -102,10 +102,19 @@ function StatCard({ title, value, icon, color = 'primary.main' }: StatCardProps)
   );
 }
 
+/**
+ * Division Hub Page
+ * UPDATED: Phase 4B - Tournament Hierarchy
+ *
+ * Central management hub for a single division within a tournament
+ */
 export function DivisionHubPage() {
-  const { id } = useParams<{ id: string }>();
+  const { tournamentId, id } = useParams<{ tournamentId: string; id: string }>();
   const navigate = useNavigate();
-  const { data: division, isLoading, error } = useDivision(id!);
+  const parsedTournamentId = tournamentId ? parseInt(tournamentId, 10) : undefined;
+  const divisionId = id ? parseInt(id, 10) : undefined;
+
+  const { data: division, isLoading, error } = useDivision(parsedTournamentId, divisionId);
 
   if (isLoading) {
     return (
@@ -133,15 +142,22 @@ export function DivisionHubPage() {
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 3 }}>
         <Link
-          href="/admin/dashboard"
-          onClick={(e) => { e.preventDefault(); navigate('/admin/dashboard'); }}
+          href="/admin/tournaments"
+          onClick={(e) => { e.preventDefault(); navigate('/admin/tournaments'); }}
           sx={{ cursor: 'pointer' }}
         >
-          Dashboard
+          Tournaments
         </Link>
         <Link
-          href="/admin/divisions"
-          onClick={(e) => { e.preventDefault(); navigate('/admin/divisions'); }}
+          href={`/admin/tournaments/${tournamentId}`}
+          onClick={(e) => { e.preventDefault(); navigate(`/admin/tournaments/${tournamentId}`); }}
+          sx={{ cursor: 'pointer' }}
+        >
+          Tournament
+        </Link>
+        <Link
+          href={`/admin/tournaments/${tournamentId}/divisions`}
+          onClick={(e) => { e.preventDefault(); navigate(`/admin/tournaments/${tournamentId}/divisions`); }}
           sx={{ cursor: 'pointer' }}
         >
           Divisions
@@ -160,7 +176,7 @@ export function DivisionHubPage() {
         <Button
           variant="outlined"
           startIcon={<SettingsIcon />}
-          onClick={() => navigate(`/admin/divisions/${id}/edit`)}
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/edit`)}
         >
           Settings
         </Button>
@@ -224,7 +240,7 @@ export function DivisionHubPage() {
             title="Teams"
             description={`Manage ${division.stats?.teams || 0} team${(division.stats?.teams || 0) !== 1 ? 's' : ''}`}
             icon={<Groups sx={{ fontSize: 56 }} />}
-            link={`/admin/divisions/${id}/teams`}
+            link={`/admin/tournaments/${tournamentId}/divisions/${id}/teams`}
             color="secondary.main"
           />
         </Grid>
@@ -233,7 +249,7 @@ export function DivisionHubPage() {
             title="Pools"
             description={`Configure ${division.stats?.pools || 0} pool${(division.stats?.pools || 0) !== 1 ? 's' : ''}`}
             icon={<ViewModule sx={{ fontSize: 56 }} />}
-            link={`/admin/divisions/${id}/pools`}
+            link={`/admin/tournaments/${tournamentId}/divisions/${id}/pools`}
             color="primary.main"
           />
         </Grid>
@@ -242,7 +258,7 @@ export function DivisionHubPage() {
             title="Matches"
             description={`View ${division.stats?.matches || 0} match${(division.stats?.matches || 0) !== 1 ? 'es' : ''}`}
             icon={<SportsTennis sx={{ fontSize: 56 }} />}
-            link={`/admin/divisions/${id}/matches`}
+            link={`/admin/tournaments/${tournamentId}/divisions/${id}/matches`}
             color="warning.main"
           />
         </Grid>
@@ -251,7 +267,7 @@ export function DivisionHubPage() {
             title="Standings"
             description="View current rankings"
             icon={<Leaderboard sx={{ fontSize: 56 }} />}
-            link={`/divisions/${id}/standings`}
+            link={`/tournaments/${tournamentId}/divisions/${id}/standings`}
             color="success.main"
           />
         </Grid>
@@ -268,7 +284,7 @@ export function DivisionHubPage() {
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={() => navigate(`/admin/divisions/${id}/teams`)}
+                onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/teams`)}
               >
                 Add Teams
               </Button>
@@ -278,7 +294,7 @@ export function DivisionHubPage() {
             <Grid item>
               <Button
                 variant="contained"
-                onClick={() => navigate(`/admin/divisions/${id}/pools`)}
+                onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/pools`)}
               >
                 Create Pools
               </Button>
@@ -289,7 +305,7 @@ export function DivisionHubPage() {
               <Button
                 variant="contained"
                 color="warning"
-                onClick={() => navigate(`/admin/divisions/${id}/matches`)}
+                onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/matches`)}
               >
                 Generate Matches
               </Button>
@@ -300,7 +316,7 @@ export function DivisionHubPage() {
               <Button
                 variant="contained"
                 color="success"
-                onClick={() => navigate(`/admin/divisions/${id}/matches`)}
+                onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/matches`)}
               >
                 Enter Scores
               </Button>

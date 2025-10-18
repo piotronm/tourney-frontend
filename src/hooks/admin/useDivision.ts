@@ -1,19 +1,24 @@
+/**
+ * useDivision Hook
+ * Fetches a single division by ID (admin view)
+ *
+ * @param tournamentId - Tournament ID
+ * @param divisionId - Division ID
+ * @returns Query result with division data
+ */
+
 import { useQuery } from '@tanstack/react-query';
 import { getDivision } from '@/api/admin/divisions';
 
-/**
- * Hook to fetch a single division by ID
- *
- * @param id - Division ID
- * @returns Query result with division data
- */
-export const useDivision = (id: number) => {
+export const useDivision = (
+  tournamentId: number | undefined,
+  divisionId: number | undefined
+) => {
   return useQuery({
-    queryKey: ['division', id],
-    queryFn: () => getDivision(id),
-    staleTime: 60000, // 1 minute
-    gcTime: 300000, // 5 minutes
+    queryKey: ['admin-division', tournamentId, divisionId],
+    queryFn: () => getDivision(tournamentId!, divisionId!),
+    enabled: !!tournamentId && !!divisionId && divisionId > 0,
+    staleTime: 0, // Admin data should always be fresh
     retry: 1,
-    enabled: !!id && id > 0, // Only fetch if ID is valid
   });
 };

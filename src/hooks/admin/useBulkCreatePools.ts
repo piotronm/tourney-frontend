@@ -1,30 +1,38 @@
+/**
+ * useBulkCreatePools Hook
+ * Bulk creates multiple pools in a division
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { bulkCreatePools } from '@/api/admin/pools';
 import type { CreatePoolDto } from '@/types/pool';
+import { toast } from 'sonner';
 
-export const useBulkCreatePools = (divisionId: number) => {
+interface BulkCreatePoolsParams {
+  tournamentId: number;
+  divisionId: number;
+  pools: CreatePoolDto[];
+}
+
+export const useBulkCreatePools = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (count: number) => {
-      // Generate pool names: A, B, C, D, ...
-      const pools: CreatePoolDto[] = Array.from({ length: count }, (_, i) => ({
-        name: `Pool ${String.fromCharCode(65 + i)}`,
-        label: String.fromCharCode(65 + i),
-        orderIndex: i + 1,
-      }));
-
-      return bulkCreatePools(divisionId, pools);
+    mutationFn: ({ tournamentId, divisionId, pools }: BulkCreatePoolsParams) =>
+      bulkCreatePools(tournamentId, divisionId, pools),
+    onSuccess: (result, variables) => {
+      // Invalidate pools for this division
+      queryClient.invalidateQueries({
+        queryKey: ['admin-pools', variables.tournamentId, variables.divisionId],
+      });
+      // Invalidate division details (pool count changed)
+      queryClient.invalidateQueries({
+        queryKey: ['admin-division', variables.tournamentId, variables.divisionId],
+      });
+      toast.success(result.message || `Created ${result.pools.length} pools successfully!`);
     },
-    onSuccess: (_, count) => {
-      queryClient.invalidateQueries({ queryKey: ['pools', divisionId] });
-      queryClient.invalidateQueries({ queryKey: ['division', divisionId] });
-      toast.success(`Created ${count} pools successfully!`);
-    },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Failed to create pools';
-      toast.error(message);
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create pools');
     },
   });
 };

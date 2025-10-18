@@ -27,6 +27,7 @@ import { MatchProgressBar } from '@/components/ui/MatchProgressBar';
 
 interface DivisionCardProps {
   division: Division;
+  tournamentId?: number;
   onEdit?: () => void;
   onDelete?: () => void;
   showActions?: boolean;
@@ -34,17 +35,20 @@ interface DivisionCardProps {
 
 /**
  * Division card component
+ * UPDATED: Phase 4B - Tournament Hierarchy
+ *
  * Displays division summary with optional action buttons
  *
  * Features:
  * - Shows division name and stats
  * - Creation date
  * - Edit/Delete actions (optional)
- * - Navigate to standings/matches
+ * - Navigate to standings/matches with tournament context
  * - Status badge and progress indicator
  */
 export const DivisionCard: FC<DivisionCardProps> = ({
   division,
+  tournamentId,
   onEdit,
   onDelete,
   showActions = true,
@@ -98,7 +102,7 @@ export const DivisionCard: FC<DivisionCardProps> = ({
                 <MenuItem
                   onClick={() => {
                     handleMenuClose();
-                    navigate(`/divisions/${division.id}/standings`);
+                    navigate(`/tournaments/${tournamentId}/divisions/${division.id}/standings`);
                   }}
                 >
                   <ListItemIcon>
@@ -109,7 +113,7 @@ export const DivisionCard: FC<DivisionCardProps> = ({
                 <MenuItem
                   onClick={() => {
                     handleMenuClose();
-                    navigate(`/divisions/${division.id}/matches`);
+                    navigate(`/admin/tournaments/${tournamentId}/divisions/${division.id}/matches`);
                   }}
                 >
                   <ListItemIcon>
@@ -120,7 +124,7 @@ export const DivisionCard: FC<DivisionCardProps> = ({
                 <MenuItem
                   onClick={() => {
                     handleMenuClose();
-                    navigate(`/admin/divisions/${division.id}/teams`);
+                    navigate(`/admin/tournaments/${tournamentId}/divisions/${division.id}/teams`);
                   }}
                 >
                   <ListItemIcon>
@@ -131,7 +135,7 @@ export const DivisionCard: FC<DivisionCardProps> = ({
                 <MenuItem
                   onClick={() => {
                     handleMenuClose();
-                    navigate(`/admin/divisions/${division.id}/pools`);
+                    navigate(`/admin/tournaments/${tournamentId}/divisions/${division.id}/pools`);
                   }}
                 >
                   <ListItemIcon>
@@ -181,7 +185,7 @@ export const DivisionCard: FC<DivisionCardProps> = ({
         <Button
           variant="contained"
           size="small"
-          onClick={() => navigate(`/admin/divisions/${division.id}`)}
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${division.id}`)}
         >
           Manage
         </Button>

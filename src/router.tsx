@@ -1,7 +1,7 @@
 /**
  * Application Router Configuration
  *
- * UPDATED: Phase 3 - Tournament Hierarchy
+ * UPDATED: Phase 4B - Admin Tournament Hierarchy
  *
  * Public Routes:
  * - / → HomePage
@@ -12,8 +12,15 @@
  *   - /tournaments/:tournamentId/divisions/:id/standings → StandingsPage (default)
  *   - /tournaments/:tournamentId/divisions/:id/matches → MatchesPage
  *
- * Admin Routes: (TODO: Will need tournament support in future phase)
- * - /admin/* → Admin dashboard and management
+ * Admin Routes (UPDATED - Phase 4B):
+ * - /admin → Redirect to /admin/tournaments
+ * - /admin/tournaments → AdminTournamentsPage (list)
+ * - /admin/tournaments/new → CreateTournamentPage
+ * - /admin/tournaments/:tournamentId → TournamentAdminHubPage
+ * - /admin/tournaments/:tournamentId/edit → EditTournamentPage
+ * - /admin/tournaments/:tournamentId/divisions → AdminDivisionsPage
+ * - /admin/tournaments/:tournamentId/divisions/:id/* → Division management
+ * - All admin routes now tournament-scoped
  */
 
 import { createBrowserRouter, Navigate } from 'react-router-dom';
@@ -28,20 +35,35 @@ import { LoginPage } from '@/pages/LoginPage';
 import { UnauthorizedPage } from '@/pages/UnauthorizedPage';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+// Admin pages
 import { DashboardPage } from '@/pages/admin/DashboardPage';
+import { SettingsPage } from '@/pages/admin/SettingsPage';
+
+// Tournament admin pages (NEW - Phase 4B)
+import { AdminTournamentsPage } from '@/pages/admin/AdminTournamentsPage';
+import { CreateTournamentPage } from '@/pages/admin/CreateTournamentPage';
+import { EditTournamentPage } from '@/pages/admin/EditTournamentPage';
+import { TournamentAdminHubPage } from '@/pages/admin/TournamentAdminHubPage';
+
+// Division admin pages
 import { AdminDivisionsPage } from '@/pages/admin/AdminDivisionsPage';
 import { CreateDivisionPage } from '@/pages/admin/CreateDivisionPage';
 import { EditDivisionPage } from '@/pages/admin/EditDivisionPage';
+import { DivisionHubPage } from '@/pages/admin/DivisionHubPage';
+
+// Team admin pages
 import { DivisionTeamsPage } from '@/pages/admin/DivisionTeamsPage';
 import { AddTeamPage } from '@/pages/admin/AddTeamPage';
 import { EditTeamPage } from '@/pages/admin/EditTeamPage';
+
+// Pool & Match admin pages
 import { DivisionPoolsPage } from '@/pages/admin/DivisionPoolsPage';
 import { DivisionMatchesPage } from '@/pages/admin/DivisionMatchesPage';
-import { DivisionHubPage } from '@/pages/admin/DivisionHubPage';
+
+// Global admin pages (deprecated, kept for transition)
 import { AllTeamsPage } from '@/pages/admin/AllTeamsPage';
 import { AllPoolsPage } from '@/pages/admin/AllPoolsPage';
 import { AllMatchesPage } from '@/pages/admin/AllMatchesPage';
-import { SettingsPage } from '@/pages/admin/SettingsPage';
 
 // NEW: Tournament pages (Phase 3)
 import { TournamentsPage } from '@/pages/TournamentsPage';
@@ -127,7 +149,7 @@ export const router = createBrowserRouter([
 
   // ============================================
   // ADMIN ROUTES (Protected)
-  // TODO: Will need tournament support in future phase
+  // UPDATED: Phase 4B - Tournament Hierarchy
   // ============================================
   {
     element: <ProtectedRoute requireAdmin={true} />,
@@ -136,15 +158,118 @@ export const router = createBrowserRouter([
         path: '/admin',
         element: <AdminLayout />,
         children: [
+          // Redirect /admin and /admin/dashboard to tournaments
           {
             index: true,
-            element: <Navigate to="/admin/dashboard" replace />,
+            element: <Navigate to="/admin/tournaments" replace />,
           },
           {
             path: 'dashboard',
-            element: <DashboardPage />,
+            element: <Navigate to="/admin/tournaments" replace />,
           },
-          // Global views (placeholder pages)
+
+          // ============================================
+          // TOURNAMENT ADMIN ROUTES (NEW - Phase 4B)
+          // ============================================
+
+          // List all tournaments
+          {
+            path: 'tournaments',
+            element: <AdminTournamentsPage />,
+          },
+
+          // Create new tournament
+          {
+            path: 'tournaments/new',
+            element: <CreateTournamentPage />,
+          },
+
+          // Tournament admin hub
+          {
+            path: 'tournaments/:tournamentId',
+            element: <TournamentAdminHubPage />,
+          },
+
+          // Edit tournament
+          {
+            path: 'tournaments/:tournamentId/edit',
+            element: <EditTournamentPage />,
+          },
+
+          // ============================================
+          // DIVISION ADMIN ROUTES (UPDATED - Tournament-scoped)
+          // ============================================
+
+          // List divisions in tournament
+          {
+            path: 'tournaments/:tournamentId/divisions',
+            element: <AdminDivisionsPage />,
+          },
+
+          // Create new division in tournament
+          {
+            path: 'tournaments/:tournamentId/divisions/new',
+            element: <CreateDivisionPage />,
+          },
+
+          // Division admin hub
+          {
+            path: 'tournaments/:tournamentId/divisions/:id',
+            element: <DivisionHubPage />,
+          },
+
+          // Edit division
+          {
+            path: 'tournaments/:tournamentId/divisions/:id/edit',
+            element: <EditDivisionPage />,
+          },
+
+          // ============================================
+          // TEAM ADMIN ROUTES (UPDATED - Tournament-scoped)
+          // ============================================
+
+          // Manage teams in division
+          {
+            path: 'tournaments/:tournamentId/divisions/:id/teams',
+            element: <DivisionTeamsPage />,
+          },
+
+          // Add new team to division
+          {
+            path: 'tournaments/:tournamentId/divisions/:id/teams/new',
+            element: <AddTeamPage />,
+          },
+
+          // Edit team
+          {
+            path: 'tournaments/:tournamentId/divisions/:id/teams/:teamId/edit',
+            element: <EditTeamPage />,
+          },
+
+          // ============================================
+          // POOL ADMIN ROUTES (UPDATED - Tournament-scoped)
+          // ============================================
+
+          // Manage pools in division
+          {
+            path: 'tournaments/:tournamentId/divisions/:id/pools',
+            element: <DivisionPoolsPage />,
+          },
+
+          // ============================================
+          // MATCH ADMIN ROUTES (UPDATED - Tournament-scoped)
+          // ============================================
+
+          // Manage matches in division
+          {
+            path: 'tournaments/:tournamentId/divisions/:id/matches',
+            element: <DivisionMatchesPage />,
+          },
+
+          // ============================================
+          // GLOBAL ADMIN PAGES (Deprecated - kept for transition)
+          // ============================================
+
           {
             path: 'teams',
             element: <AllTeamsPage />,
@@ -157,49 +282,14 @@ export const router = createBrowserRouter([
             path: 'matches',
             element: <AllMatchesPage />,
           },
+
+          // ============================================
+          // SETTINGS
+          // ============================================
+
           {
             path: 'settings',
             element: <SettingsPage />,
-          },
-          // Division management routes
-          {
-            path: 'divisions',
-            element: <AdminDivisionsPage />,
-          },
-          {
-            path: 'divisions/new',
-            element: <CreateDivisionPage />,
-          },
-          {
-            path: 'divisions/:id',
-            element: <DivisionHubPage />,
-          },
-          {
-            path: 'divisions/:id/edit',
-            element: <EditDivisionPage />,
-          },
-          // Team management routes
-          {
-            path: 'divisions/:divisionId/teams',
-            element: <DivisionTeamsPage />,
-          },
-          {
-            path: 'divisions/:divisionId/teams/new',
-            element: <AddTeamPage />,
-          },
-          {
-            path: 'divisions/:divisionId/teams/:teamId/edit',
-            element: <EditTeamPage />,
-          },
-          // Pool management routes
-          {
-            path: 'divisions/:id/pools',
-            element: <DivisionPoolsPage />,
-          },
-          // Match management routes
-          {
-            path: 'divisions/:id/matches',
-            element: <DivisionMatchesPage />,
           },
         ],
       },

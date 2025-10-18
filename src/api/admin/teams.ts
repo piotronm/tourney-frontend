@@ -49,13 +49,17 @@ adminApiClient.interceptors.response.use(
 
 /**
  * Get paginated list of teams for a division
+ * @param tournamentId - Tournament ID
  * @param params - Query parameters (divisionId, limit, offset, search, poolId)
  * @returns Paginated list of teams
  */
-export const getTeams = async (params: TeamListParams): Promise<PaginatedTeams> => {
+export const getTeams = async (
+  tournamentId: number,
+  params: TeamListParams
+): Promise<PaginatedTeams> => {
   const { divisionId, ...queryParams } = params;
   const response = await apiClient.get<PaginatedTeams>(
-    `/divisions/${divisionId}/teams`,
+    `/tournaments/${tournamentId}/divisions/${divisionId}/teams`,
     { params: queryParams }
   );
   return response.data;
@@ -63,13 +67,18 @@ export const getTeams = async (params: TeamListParams): Promise<PaginatedTeams> 
 
 /**
  * Get single team by ID
+ * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @param teamId - Team ID
  * @returns Team object
  */
-export const getTeam = async (divisionId: number, teamId: number): Promise<Team> => {
+export const getTeam = async (
+  tournamentId: number,
+  divisionId: number,
+  teamId: number
+): Promise<Team> => {
   const response = await apiClient.get<{ data: Team }>(
-    `/divisions/${divisionId}/teams/${teamId}`
+    `/tournaments/${tournamentId}/divisions/${divisionId}/teams/${teamId}`
   );
   // Backend returns {data: {...}} so extract the team object
   return response.data.data;
@@ -77,16 +86,18 @@ export const getTeam = async (divisionId: number, teamId: number): Promise<Team>
 
 /**
  * Create new team
+ * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @param data - Team creation data
  * @returns Created team
  */
 export const createTeam = async (
+  tournamentId: number,
   divisionId: number,
   data: CreateTeamDto
 ): Promise<Team> => {
   const response = await adminApiClient.post<Team>(
-    `/divisions/${divisionId}/teams`,
+    `/tournaments/${tournamentId}/divisions/${divisionId}/teams`,
     data
   );
   return response.data;
@@ -94,18 +105,20 @@ export const createTeam = async (
 
 /**
  * Update existing team
+ * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @param teamId - Team ID
  * @param data - Team update data
  * @returns Updated team
  */
 export const updateTeam = async (
+  tournamentId: number,
   divisionId: number,
   teamId: number,
   data: UpdateTeamDto
 ): Promise<Team> => {
   const response = await adminApiClient.put<Team>(
-    `/divisions/${divisionId}/teams/${teamId}`,
+    `/tournaments/${tournamentId}/divisions/${divisionId}/teams/${teamId}`,
     data
   );
   return response.data;
@@ -113,28 +126,34 @@ export const updateTeam = async (
 
 /**
  * Delete team
+ * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @param teamId - Team ID
  */
 export const deleteTeam = async (
+  tournamentId: number,
   divisionId: number,
   teamId: number
 ): Promise<void> => {
-  await adminApiClient.delete(`/divisions/${divisionId}/teams/${teamId}`);
+  await adminApiClient.delete(
+    `/tournaments/${tournamentId}/divisions/${divisionId}/teams/${teamId}`
+  );
 };
 
 /**
  * Bulk import teams from CSV
+ * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @param teams - Array of teams to import
  * @returns Import result with success/error counts
  */
 export const bulkImportTeams = async (
+  tournamentId: number,
   divisionId: number,
   teams: BulkImportTeam[]
 ): Promise<BulkImportResult> => {
   const response = await adminApiClient.post<BulkImportResult>(
-    `/divisions/${divisionId}/teams/bulk-import`,
+    `/tournaments/${tournamentId}/divisions/${divisionId}/teams/bulk-import`,
     { teams }
   );
   return response.data;

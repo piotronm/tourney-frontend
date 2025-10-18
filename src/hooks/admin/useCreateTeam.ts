@@ -1,35 +1,37 @@
+/**
+ * useCreateTeam Hook
+ * Creates a new team in a division
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createTeam } from '@/api/admin/teams';
 import type { CreateTeamDto } from '@/types/team';
 import { toast } from 'sonner';
 
-/**
- * Hook to create new team
- *
- * Features:
- * - Invalidates teams query on success
- * - Shows success/error toast notifications
- * - Returns mutation object with loading/error states
- *
- * @returns TanStack Query mutation object
- */
+interface CreateTeamParams {
+  tournamentId: number;
+  divisionId: number;
+  data: CreateTeamDto;
+}
+
 export const useCreateTeam = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ divisionId, data }: { divisionId: number; data: CreateTeamDto }) =>
-      createTeam(divisionId, data),
+    mutationFn: ({ tournamentId, divisionId, data }: CreateTeamParams) =>
+      createTeam(tournamentId, divisionId, data),
     onSuccess: (team, variables) => {
-      // Invalidate teams list to trigger refetch
+      // Invalidate teams list for this division
       queryClient.invalidateQueries({
-        queryKey: ['teams', { divisionId: variables.divisionId }]
+        queryKey: ['admin-teams', variables.tournamentId],
       });
-
-      // Show success message
+      // Invalidate division details (team count changed)
+      queryClient.invalidateQueries({
+        queryKey: ['admin-division', variables.tournamentId, variables.divisionId],
+      });
       toast.success(`Team "${team.name}" created successfully!`);
     },
     onError: (error: Error) => {
-      // Show error message
       toast.error(error.message || 'Failed to create team');
     },
   });

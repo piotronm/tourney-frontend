@@ -33,7 +33,8 @@ import { usePools } from '@/hooks/admin/usePools';
 import { useDeletePool } from '@/hooks/admin/useDeletePool';
 import { useBulkCreatePools } from '@/hooks/admin/useBulkCreatePools';
 import { useBulkDeletePools } from '@/hooks/admin/useBulkDeletePools';
-import { useDivision } from '@/hooks/useDivision';
+import { useDivision } from '@/hooks/admin/useDivision';
+import { useTournament } from '@/hooks/admin/useTournament';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -46,26 +47,32 @@ import type { Pool } from '@/types/pool';
 
 /**
  * Division Pools Page
- * Main page for managing pools within a division
+ * UPDATED: Phase 4B - Tournament Hierarchy
+ *
+ * Main page for managing pools within a division in a tournament
  *
  * Features:
  * - List all pools in division
  * - Create new pools with auto-suggestions
+ * - Bulk create 4 pools at once
+ * - Selection mode for bulk delete
  * - Delete pools with confirmation
  * - View teams assigned to each pool
  * - Empty state for no pools
- * - Breadcrumb navigation
+ * - Tournament context breadcrumb navigation
  */
 export const DivisionPoolsPage = () => {
-  const { id: divisionId } = useParams<{ id: string }>();
+  const { tournamentId, id } = useParams<{ tournamentId: string; id: string }>();
   const navigate = useNavigate();
-  const parsedDivisionId = parseInt(divisionId!, 10);
+  const parsedTournamentId = tournamentId ? parseInt(tournamentId, 10) : undefined;
+  const parsedDivisionId = id ? parseInt(id, 10) : undefined;
 
-  const { data: division, isLoading: divisionLoading } = useDivision(parsedDivisionId);
-  const { data: pools, isLoading: poolsLoading, error } = usePools(parsedDivisionId, { isAdmin: true });
-  const { mutate: deletePool, isPending: isDeleting } = useDeletePool(parsedDivisionId);
-  const { mutate: bulkCreatePools, isPending: isCreatingBulk } = useBulkCreatePools(parsedDivisionId);
-  const { mutate: bulkDeletePools, isPending: isDeletingBulk } = useBulkDeletePools(parsedDivisionId);
+  const { data: tournament } = useTournament(parsedTournamentId);
+  const { data: division, isLoading: divisionLoading } = useDivision(parsedTournamentId, parsedDivisionId);
+  const { data: pools, isLoading: poolsLoading, error } = usePools(parsedTournamentId, parsedDivisionId);
+  const { mutate: deletePool, isPending: isDeleting } = useDeletePool(parsedDivisionId!);
+  const { mutate: bulkCreatePools, isPending: isCreatingBulk } = useBulkCreatePools();
+  const { mutate: bulkDeletePools, isPending: isDeletingBulk } = useBulkDeletePools(parsedDivisionId!);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -128,18 +135,35 @@ export const DivisionPoolsPage = () => {
   };
 
   const handleDeleteConfirm = () => {
-    if (deleteDialog.pool) {
-      deletePool(deleteDialog.pool.id, {
-        onSuccess: () => {
-          setDeleteDialog({ open: false, pool: null });
-        },
-      });
+    if (deleteDialog.pool && parsedTournamentId && parsedDivisionId) {
+      deletePool(
+        deleteDialog.pool.id,
+        {
+          onSuccess: () => {
+            setDeleteDialog({ open: false, pool: null });
+          },
+        }
+      );
     }
   };
 
   const handleTemplateCreate = (count: number) => {
+    if (!parsedTournamentId || !parsedDivisionId) return;
+
     setTemplateMenuAnchor(null);
-    bulkCreatePools(count);
+
+    // Generate pools array from count
+    const pools = Array.from({ length: count }, (_, i) => ({
+      name: `Pool ${String.fromCharCode(65 + i)}`,
+      label: String.fromCharCode(65 + i),
+      orderIndex: i + 1,
+    }));
+
+    bulkCreatePools({
+      tournamentId: parsedTournamentId,
+      divisionId: parsedDivisionId,
+      pools
+    });
   };
 
   const toggleSelectionMode = () => {
@@ -162,13 +186,18 @@ export const DivisionPoolsPage = () => {
   };
 
   const handleBulkDeleteConfirm = () => {
-    bulkDeletePools(Array.from(selectedPoolIds), {
-      onSuccess: () => {
-        setSelectedPoolIds(new Set());
-        setSelectionMode(false);
-        setBulkDeleteDialogOpen(false);
-      },
-    });
+    if (!parsedTournamentId || !parsedDivisionId) return;
+
+    bulkDeletePools(
+      Array.from(selectedPoolIds),
+      {
+        onSuccess: () => {
+          setSelectedPoolIds(new Set());
+          setSelectionMode(false);
+          setBulkDeleteDialogOpen(false);
+        },
+      }
+    );
   };
 
   const selectedPools = pools?.filter(p => selectedPoolIds.has(p.id)) || [];
@@ -180,28 +209,43 @@ export const DivisionPoolsPage = () => {
         <Link
           component="button"
           variant="body2"
-          onClick={() => navigate('/admin/dashboard')}
+          onClick={() => navigate('/admin/tournaments')}
         >
-          Dashboard
+          Tournaments
+        </Link>
+        {tournament && (
+          <Link
+            component="button"
+            variant="body2"
+            onClick={() => navigate(`/admin/tournaments/${tournamentId}`)}
+          >
+            {tournament.name}
+          </Link>
+        )}
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions`)}
+        >
+          Divisions
         </Link>
         <Link
           component="button"
           variant="body2"
-          onClick={() => navigate('/admin/divisions')}
+          onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
         >
-          Divisions
+          {division?.name}
         </Link>
-        <Typography color="text.primary">{division.name}</Typography>
         <Typography color="text.primary">Pools</Typography>
       </Breadcrumbs>
 
       {/* Back Button */}
       <Button
         startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/admin/divisions')}
+        onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
         sx={{ mb: 2 }}
       >
-        Back to Divisions
+        Back to Division
       </Button>
 
       {/* Header */}
@@ -217,7 +261,7 @@ export const DivisionPoolsPage = () => {
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="text"
-            onClick={() => navigate(`/admin/divisions/${divisionId}/matches`)}
+            onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/matches`)}
           >
             View Matches
           </Button>
@@ -366,7 +410,7 @@ export const DivisionPoolsPage = () => {
                       No teams assigned to this pool yet.{' '}
                       <Link
                         component="button"
-                        onClick={() => navigate(`/admin/divisions/${divisionId}/teams`)}
+                        onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/teams`)}
                         sx={{ cursor: 'pointer', fontWeight: 'bold' }}
                       >
                         Assign teams →
@@ -402,7 +446,8 @@ export const DivisionPoolsPage = () => {
       {/* Create Pool Dialog */}
       <CreatePoolDialog
         open={createDialogOpen}
-        divisionId={parsedDivisionId}
+        tournamentId={parsedTournamentId!}
+        divisionId={parsedDivisionId!}
         onClose={() => setCreateDialogOpen(false)}
         nextOrderIndex={getNextOrderIndex()}
         nextLabel={getNextLabel()}
@@ -428,7 +473,8 @@ export const DivisionPoolsPage = () => {
       {/* Generate Matches Dialog */}
       <GenerateMatchesDialog
         open={generateDialogOpen}
-        divisionId={divisionId!}
+        tournamentId={parsedTournamentId!}
+        divisionId={parsedDivisionId!}
         pools={sortedPools}
         onClose={() => setGenerateDialogOpen(false)}
       />

@@ -40,35 +40,83 @@ adminApiClient.interceptors.response.use(
   }
 );
 
+/**
+ * Get paginated list of divisions for a tournament
+ * @param tournamentId - Tournament ID
+ * @param params - Query parameters (limit, offset, search)
+ * @returns Paginated list of divisions
+ */
 export const getDivisions = async (
+  tournamentId: number,
   params?: DivisionListParams
 ): Promise<PaginatedDivisions> => {
-  const response = await apiClient.get<PaginatedDivisions>('/divisions', {
-    params,
-  });
+  const response = await apiClient.get<PaginatedDivisions>(
+    `/tournaments/${tournamentId}/divisions`,
+    { params }
+  );
   return response.data;
 };
 
-export const getDivision = async (id: number): Promise<Division> => {
-  const response = await apiClient.get<Division>(`/divisions/${id}`);
+/**
+ * Get single division by ID
+ * @param tournamentId - Tournament ID
+ * @param divisionId - Division ID
+ * @returns Division object
+ */
+export const getDivision = async (
+  tournamentId: number,
+  divisionId: number
+): Promise<Division> => {
+  const response = await apiClient.get<Division>(
+    `/tournaments/${tournamentId}/divisions/${divisionId}`
+  );
   return response.data;
 };
 
+/**
+ * Create new division in tournament
+ * @param tournamentId - Tournament ID
+ * @param data - Division creation data
+ * @returns Created division
+ */
 export const createDivision = async (
+  tournamentId: number,
   data: CreateDivisionDto
 ): Promise<Division> => {
-  const response = await adminApiClient.post<Division>('/divisions', data);
+  const response = await adminApiClient.post<Division>(
+    `/tournaments/${tournamentId}/divisions`,
+    data
+  );
   return response.data;
 };
 
+/**
+ * Update existing division
+ * @param tournamentId - Tournament ID
+ * @param divisionId - Division ID
+ * @param data - Division update data
+ * @returns Updated division
+ */
 export const updateDivision = async (
-  id: number,
+  tournamentId: number,
+  divisionId: number,
   data: UpdateDivisionDto
 ): Promise<Division> => {
-  const response = await adminApiClient.put<Division>(`/divisions/${id}`, data);
+  const response = await adminApiClient.put<Division>(
+    `/tournaments/${tournamentId}/divisions/${divisionId}`,
+    data
+  );
   return response.data;
 };
 
-export const deleteDivision = async (id: number): Promise<void> => {
-  await adminApiClient.delete(`/divisions/${id}`);
+/**
+ * Delete division
+ * @param tournamentId - Tournament ID
+ * @param divisionId - Division ID
+ */
+export const deleteDivision = async (
+  tournamentId: number,
+  divisionId: number
+): Promise<void> => {
+  await adminApiClient.delete(`/tournaments/${tournamentId}/divisions/${divisionId}`);
 };

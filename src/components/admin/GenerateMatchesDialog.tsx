@@ -20,18 +20,24 @@ import type { Pool } from '@/api/types';
 
 interface GenerateMatchesDialogProps {
   open: boolean;
-  divisionId: string;
+  tournamentId: number;
+  divisionId: number;
   pools: Pool[];
   onClose: () => void;
 }
 
+/**
+ * Generate Matches Dialog
+ * UPDATED: Phase 4B - Tournament Hierarchy
+ */
 export const GenerateMatchesDialog = ({
   open,
+  tournamentId,
   divisionId,
   pools,
   onClose,
 }: GenerateMatchesDialogProps) => {
-  const { mutate: generateMatches, isPending } = useGenerateMatches(divisionId);
+  const { mutate: generateMatches, isPending } = useGenerateMatches();
 
   const [format, setFormat] = useState<'ROUND_ROBIN' | 'SINGLE_ELIM'>('ROUND_ROBIN');
 
@@ -54,7 +60,7 @@ export const GenerateMatchesDialog = ({
 
   const handleGenerate = () => {
     generateMatches(
-      { format },
+      { tournamentId, divisionId, data: { format } },
       {
         onSuccess: () => {
           onClose();

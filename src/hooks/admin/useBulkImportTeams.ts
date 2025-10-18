@@ -1,78 +1,43 @@
+/**
+ * useBulkImportTeams Hook
+ * Bulk imports teams from CSV data
+ */
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { bulkImportTeams } from '@/api/admin/teams';
 import type { BulkImportTeam } from '@/types/team';
 import { toast } from 'sonner';
 
-/**
- * Hook to bulk import teams from CSV
- *
- * @returns TanStack Query mutation object
- */
+interface BulkImportParams {
+  tournamentId: number;
+  divisionId: number;
+  teams: BulkImportTeam[];
+}
+
 export const useBulkImportTeams = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ divisionId, teams }: { divisionId: number; teams: BulkImportTeam[] }) =>
-      bulkImportTeams(divisionId, teams),
+    mutationFn: ({ tournamentId, divisionId, teams }: BulkImportParams) =>
+      bulkImportTeams(tournamentId, divisionId, teams),
     onSuccess: (result, variables) => {
       // Invalidate teams list
       queryClient.invalidateQueries({
-        queryKey: ['teams', { divisionId: variables.divisionId }]
+        queryKey: ['admin-teams', variables.tournamentId],
       });
-
-      // Invalidate pools list (important for auto-created pools)
+      // Invalidate division details (team count changed)
       queryClient.invalidateQueries({
-        queryKey: ['pools', variables.divisionId]
+        queryKey: ['admin-division', variables.tournamentId, variables.divisionId],
       });
-
-      // Log full result for debugging
-      console.log('Bulk import result:', result);
-
-      // Show created pools notification
-      if (result.createdPools && result.createdPools.length > 0) {
-        const poolList = result.createdPools.join(', ');
-        toast.info(
-          `📊 Auto-created ${result.createdPools.length} pool(s): ${poolList}`,
-          { duration: 6000 }
-        );
-      }
-
-      // Show detailed success message
-      if (result.errors.length === 0) {
-        const poolInfo = result.createdPools && result.createdPools.length > 0
-          ? ` and created ${result.createdPools.length} pool(s)`
-          : '';
-        toast.success(
-          `Successfully imported ${result.created} teams${poolInfo}!`
-        );
+      
+      const { created, errors } = result;
+      if (errors.length > 0) {
+        toast.warning(`Imported ${created} teams with ${errors.length} errors`);
       } else {
-        // Show detailed error information
-        console.error('Import errors:', result.errors);
-
-        // Show first few errors in toast
-        const errorSummary = result.errors.slice(0, 3).map(e =>
-          `Row ${e.row}: ${e.message}`
-        ).join('\n');
-
-        const moreErrors = result.errors.length > 3
-          ? `\n... and ${result.errors.length - 3} more errors`
-          : '';
-
-        if (result.created === 0) {
-          toast.error(
-            `Failed to import any teams.\n${errorSummary}${moreErrors}`,
-            { duration: 8000 }
-          );
-        } else {
-          toast.warning(
-            `Imported ${result.created} teams with ${result.errors.length} errors.\n${errorSummary}${moreErrors}`,
-            { duration: 6000 }
-          );
-        }
+        toast.success(`Successfully imported ${created} teams!`);
       }
     },
     onError: (error: Error) => {
-      console.error('Bulk import error:', error);
       toast.error(error.message || 'Failed to import teams');
     },
   });

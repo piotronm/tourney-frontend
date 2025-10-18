@@ -5,6 +5,7 @@ import type { PoolFormData } from '@/schemas/poolSchema';
 
 interface CreatePoolDialogProps {
   open: boolean;
+  tournamentId: number;
   divisionId: number;
   onClose: () => void;
   nextOrderIndex: number;
@@ -13,6 +14,8 @@ interface CreatePoolDialogProps {
 
 /**
  * Create Pool Dialog
+ * UPDATED: Phase 4B - Tournament Hierarchy
+ *
  * Dialog wrapper for creating a new pool with auto-suggested values
  *
  * Features:
@@ -24,19 +27,23 @@ interface CreatePoolDialogProps {
  */
 export const CreatePoolDialog = ({
   open,
+  tournamentId,
   divisionId,
   onClose,
   nextOrderIndex,
   nextLabel,
 }: CreatePoolDialogProps) => {
-  const { mutate: createPool, isPending } = useCreatePool(divisionId);
+  const { mutate: createPool, isPending } = useCreatePool();
 
   const handleSubmit = (data: PoolFormData) => {
-    createPool(data, {
-      onSuccess: () => {
-        onClose();
-      },
-    });
+    createPool(
+      { tournamentId, divisionId, data },
+      {
+        onSuccess: () => {
+          onClose();
+        },
+      }
+    );
   };
 
   return (

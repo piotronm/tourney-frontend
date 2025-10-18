@@ -1,15 +1,18 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { Container, Box, Typography, Button, CircularProgress, Alert } from '@mui/material';
+import { Container, Box, Typography, Button, CircularProgress, Alert, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { TeamForm } from '@/components/forms/TeamForm';
 import { useTeam } from '@/hooks/admin/useTeam';
 import { useUpdateTeam } from '@/hooks/admin/useUpdateTeam';
 import { useDivision } from '@/hooks/admin/useDivision';
+import { useTournament } from '@/hooks/admin/useTournament';
 import type { TeamFormData } from '@/schemas/teamSchema';
 
 /**
  * Edit Team Page
- * Allows admin to edit an existing team
+ * UPDATED: Phase 4B - Tournament Hierarchy
+ *
+ * Allows admin to edit an existing team in a division
  *
  * Features:
  * - Loads existing team data
@@ -17,20 +20,26 @@ import type { TeamFormData } from '@/schemas/teamSchema';
  * - Form validation with Zod
  * - Back navigation
  * - Success redirect
+ * - Tournament context breadcrumbs
  */
 export const EditTeamPage = () => {
   const navigate = useNavigate();
-  const { divisionId, teamId } = useParams<{ divisionId: string; teamId: string }>();
-  const parsedDivisionId = parseInt(divisionId!, 10);
-  const parsedTeamId = parseInt(teamId!, 10);
+  const { tournamentId, id, teamId } = useParams<{ tournamentId: string; id: string; teamId: string }>();
+  const parsedTournamentId = tournamentId ? parseInt(tournamentId, 10) : undefined;
+  const parsedDivisionId = id ? parseInt(id, 10) : undefined;
+  const parsedTeamId = teamId ? parseInt(teamId, 10) : undefined;
 
-  const { data: division } = useDivision(parsedDivisionId);
-  const { data: team, isLoading, isError } = useTeam(parsedDivisionId, parsedTeamId);
+  const { data: tournament } = useTournament(parsedTournamentId);
+  const { data: division } = useDivision(parsedTournamentId, parsedDivisionId);
+  const { data: team, isLoading, isError } = useTeam(parsedTournamentId, parsedDivisionId, parsedTeamId);
   const { mutate: updateTeam, isPending } = useUpdateTeam();
 
   const handleSubmit = (data: TeamFormData) => {
+    if (!parsedTournamentId || !parsedDivisionId || !parsedTeamId) return;
+
     updateTeam(
       {
+        tournamentId: parsedTournamentId,
         divisionId: parsedDivisionId,
         teamId: parsedTeamId,
         data: {
@@ -41,14 +50,14 @@ export const EditTeamPage = () => {
       },
       {
         onSuccess: () => {
-          navigate(`/admin/divisions/${divisionId}/teams`);
+          navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/teams`);
         },
       }
     );
   };
 
   const handleCancel = () => {
-    navigate(`/admin/divisions/${divisionId}/teams`);
+    navigate(`/admin/tournaments/${tournamentId}/divisions/${id}/teams`);
   };
 
   // Loading state
@@ -76,6 +85,49 @@ export const EditTeamPage = () => {
 
   return (
     <Container maxWidth="md">
+      {/* Breadcrumbs */}
+      <Box sx={{ mb: 3 }}>
+        <Breadcrumbs>
+          <Link
+            component="button"
+            variant="body1"
+            onClick={() => navigate('/admin/tournaments')}
+            sx={{ cursor: 'pointer', textDecoration: 'none' }}
+          >
+            Tournaments
+          </Link>
+          {tournament && (
+            <Link
+              component="button"
+              variant="body1"
+              onClick={() => navigate(`/admin/tournaments/${tournamentId}`)}
+              sx={{ cursor: 'pointer', textDecoration: 'none' }}
+            >
+              {tournament.name}
+            </Link>
+          )}
+          {division && (
+            <Link
+              component="button"
+              variant="body1"
+              onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
+              sx={{ cursor: 'pointer', textDecoration: 'none' }}
+            >
+              {division.name}
+            </Link>
+          )}
+          <Link
+            component="button"
+            variant="body1"
+            onClick={handleCancel}
+            sx={{ cursor: 'pointer', textDecoration: 'none' }}
+          >
+            Teams
+          </Link>
+          <Typography color="text.primary">Edit Team</Typography>
+        </Breadcrumbs>
+      </Box>
+
       <Box sx={{ mb: 3 }}>
         <Button
           startIcon={<ArrowBackIcon />}
@@ -88,7 +140,7 @@ export const EditTeamPage = () => {
           Edit Team
         </Typography>
         <Typography color="text.secondary">
-          {division?.name}
+          {division?.name} • {team?.name}
         </Typography>
       </Box>
 

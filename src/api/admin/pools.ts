@@ -16,34 +16,42 @@ const adminApiClient = axios.create({
 
 /**
  * Get all pools for a division
+ * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @returns Promise resolving to array of pools
  */
-export const getPools = async (divisionId: number): Promise<Pool[]> => {
-  const response = await apiClient.get<{ data: Pool[] }>(`/divisions/${divisionId}/pools`);
+export const getPools = async (
+  tournamentId: number,
+  divisionId: number
+): Promise<Pool[]> => {
+  const response = await apiClient.get<{ data: Pool[] }>(
+    `/tournaments/${tournamentId}/divisions/${divisionId}/pools`
+  );
   // Backend returns {data: [...]} so extract the array
   return response.data.data || [];
 };
 
 /**
  * Create a new pool in a division
+ * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @param data - Pool creation data
  * @returns Promise resolving to created pool
  */
 export const createPool = async (
+  tournamentId: number,
   divisionId: number,
   data: CreatePoolDto
 ): Promise<Pool> => {
   const response = await adminApiClient.post<Pool>(
-    `/divisions/${divisionId}/pools`,
+    `/tournaments/${tournamentId}/divisions/${divisionId}/pools`,
     data
   );
   return response.data;
 };
 
 /**
- * Update an existing pool
+ * Update an existing pool (pool IDs are unique, no tournament context needed)
  * @param poolId - Pool ID
  * @param data - Pool update data
  * @returns Promise resolving to updated pool
@@ -57,7 +65,7 @@ export const updatePool = async (
 };
 
 /**
- * Delete a pool
+ * Delete a pool (pool IDs are unique, no tournament context needed)
  * @param poolId - Pool ID
  * @returns Promise resolving when deletion is complete
  */
@@ -67,16 +75,18 @@ export const deletePool = async (poolId: number): Promise<void> => {
 
 /**
  * Bulk create pools in a division
+ * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @param pools - Array of pool templates to create
  * @returns Promise resolving to created pools
  */
 export const bulkCreatePools = async (
+  tournamentId: number,
   divisionId: number,
   pools: CreatePoolDto[]
 ): Promise<{ message: string; pools: Pool[] }> => {
   const response = await adminApiClient.post<{ message: string; pools: Pool[] }>(
-    `/divisions/${divisionId}/pools/bulk`,
+    `/tournaments/${tournamentId}/divisions/${divisionId}/pools/bulk`,
     { pools }
   );
   return response.data;
