@@ -1,5 +1,10 @@
+/**
+ * DivisionsPage - List all divisions within a tournament
+ * UPDATED: Phase 3 - Now requires tournamentId from route params
+ */
+
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -10,6 +15,7 @@ import {
   InputAdornment,
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
+import { useTournament } from '@/hooks/useTournament';
 import { useDivisions } from '@/hooks/useDivisions';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DivisionCard } from '@/components/divisions/DivisionCard';
@@ -20,6 +26,9 @@ import { PAGINATION } from '@/utils/constants';
 
 export const DivisionsPage = () => {
   const navigate = useNavigate();
+  const { tournamentId } = useParams<{ tournamentId: string }>();
+  const tid = Number(tournamentId);
+
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 300);
@@ -27,27 +36,44 @@ export const DivisionsPage = () => {
   const limit = PAGINATION.DEFAULT_LIMIT;
   const offset = (page - 1) * limit;
 
-  const { data, isLoading, error, refetch } = useDivisions({
+  // Fetch tournament info for page title
+  const { data: tournament } = useTournament(tid);
+
+  // Fetch divisions for this tournament
+  const { data, isLoading, error, refetch } = useDivisions(tid, {
     limit,
     offset,
     search: debouncedSearch,
   });
 
-  if (isLoading) return <Loading message="Loading tournaments..." />;
-  if (error) return <ErrorMessage error={error} onRetry={refetch} />;
+  if (isLoading) {
+    return <Loading message="Loading divisions..." />;
+  }
 
-  const { data: divisions, meta } = data!;
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <ErrorMessage error={error} onRetry={refetch} />
+      </Container>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const { data: divisions, meta } = data;
   const totalPages = Math.ceil(meta.total / limit);
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" gutterBottom fontWeight="bold">
-        Tournaments
+        {tournament ? `${tournament.name} - Divisions` : 'Divisions'}
       </Typography>
 
       <TextField
         fullWidth
-        placeholder="Search tournaments..."
+        placeholder="Search divisions..."
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);
@@ -65,7 +91,11 @@ export const DivisionsPage = () => {
 
       {divisions.length === 0 ? (
         <EmptyState
-          message={search ? 'No tournaments found matching your search' : 'No tournaments yet'}
+          message={
+            search
+              ? 'No divisions found matching your search'
+              : 'No divisions in this tournament yet'
+          }
         />
       ) : (
         <>
@@ -73,10 +103,12 @@ export const DivisionsPage = () => {
             {divisions.map((division) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={division.id}>
                 <Box
-                  onClick={() => navigate(`/divisions/${division.id}`)}
+                  onClick={() =>
+                    navigate(`/tournaments/${tid}/divisions/${division.id}`)
+                  }
                   sx={{ cursor: 'pointer' }}
                 >
-                  <DivisionCard division={division} />
+                  <DivisionCard division={division} tournamentId={tid} />
                 </Box>
               </Grid>
             ))}

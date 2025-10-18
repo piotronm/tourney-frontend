@@ -1,3 +1,8 @@
+/**
+ * StandingsPage - Display division standings
+ * UPDATED: Phase 3 - Now requires tournamentId from route params
+ */
+
 import { useParams } from 'react-router-dom';
 import { Box } from '@mui/material';
 import { useStandings } from '@/hooks/useStandings';
@@ -7,14 +12,24 @@ import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export const StandingsPage = () => {
-  const { id } = useParams<{ id: string }>();
-  const divisionId = id ? parseInt(id, 10) : undefined;
+  const { tournamentId, id } = useParams<{ tournamentId: string; id: string }>();
 
-  const { data, isLoading, error, refetch } = useStandings(divisionId);
+  const tid = Number(tournamentId);
+  const did = Number(id);
 
-  if (isLoading) return <Loading message="Loading standings..." />;
-  if (error) return <ErrorMessage error={error} onRetry={refetch} />;
-  if (!data) return null;
+  const { data, isLoading, error, refetch } = useStandings(tid, did);
+
+  if (isLoading) {
+    return <Loading message="Loading standings..." />;
+  }
+
+  if (error) {
+    return <ErrorMessage error={error} onRetry={refetch} />;
+  }
+
+  if (!data) {
+    return null;
+  }
 
   if (data.pools.length === 0) {
     return <EmptyState message="No standings available yet" />;

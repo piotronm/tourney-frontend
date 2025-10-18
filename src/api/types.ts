@@ -8,7 +8,71 @@ export interface ApiListResponse<T> {
   };
 }
 
-// Division types
+// ============================================
+// TOURNAMENT TYPES (NEW - Phase 3)
+// ============================================
+
+/**
+ * Tournament status enum
+ */
+export type TournamentStatus = 'draft' | 'active' | 'completed' | 'archived';
+
+/**
+ * Tournament stats (summary)
+ */
+export interface TournamentStats {
+  divisions: number;
+  teams: number;
+  matches: number;
+}
+
+/**
+ * Tournament object (list view)
+ */
+export interface Tournament {
+  id: number;
+  name: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  status: TournamentStatus;
+  createdAt: string;
+  updatedAt: string;
+  stats: TournamentStats;
+}
+
+/**
+ * Division summary within tournament detail
+ */
+export interface TournamentDivisionSummary {
+  id: number;
+  name: string;
+  teamCount: number;
+  poolCount: number;
+}
+
+/**
+ * Tournament detail (full view with divisions)
+ */
+export interface TournamentDetail {
+  id: number;
+  name: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  status: TournamentStatus;
+  createdAt: string;
+  updatedAt: string;
+  stats: TournamentStats & {
+    completedMatches: number;
+  };
+  divisions: TournamentDivisionSummary[];
+}
+
+// ============================================
+// DIVISION TYPES (UPDATED - Phase 3)
+// ============================================
+
 export interface DivisionStats {
   teams: number;
   pools: number;
@@ -16,8 +80,12 @@ export interface DivisionStats {
   completedMatches: number;
 }
 
+/**
+ * Division object (UPDATED: now includes tournamentId)
+ */
 export interface Division {
   id: number;
+  tournamentId: number; // ← ADDED for Phase 3
   name: string;
   createdAt: string;
   stats: DivisionStats;
@@ -29,11 +97,17 @@ export interface Pool {
   teamCount: number;
 }
 
+/**
+ * Division detail (UPDATED: now includes tournamentId)
+ */
 export interface DivisionDetail extends Division {
+  tournamentId: number; // ← ADDED for Phase 3
   pools: Pool[];
 }
 
-// Match types
+// ============================================
+// MATCH TYPES
+// ============================================
 
 /**
  * Match status enum
@@ -118,7 +192,10 @@ export interface GenerateMatchesResponse {
   count: number;
 }
 
-// Standings types
+// ============================================
+// STANDINGS TYPES (UPDATED - Phase 3)
+// ============================================
+
 export interface TeamStanding {
   rank: number;
   teamId: number;
@@ -137,13 +214,20 @@ export interface PoolStandings {
   standings: TeamStanding[];
 }
 
+/**
+ * Standings response (UPDATED: now includes tournamentId and tournamentName)
+ */
 export interface StandingsResponse {
+  tournamentId: number; // ← ADDED for Phase 3
+  tournamentName: string; // ← ADDED for Phase 3
   divisionId: number;
   divisionName: string;
   pools: PoolStandings[];
 }
 
-// Phase 6: Score Entry Types
+// ============================================
+// SCORE ENTRY TYPES (Phase 6)
+// ============================================
 
 /**
  * Request payload for updating match score

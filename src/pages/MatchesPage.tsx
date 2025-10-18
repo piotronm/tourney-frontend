@@ -1,3 +1,8 @@
+/**
+ * MatchesPage - Display and filter division matches
+ * UPDATED: Phase 3 - Now requires tournamentId from route params
+ */
+
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { SelectChangeEvent } from '@mui/material';
@@ -18,27 +23,39 @@ import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export const MatchesPage = () => {
-  const { id } = useParams<{ id: string }>();
-  const divisionId = id ? parseInt(id, 10) : undefined;
+  const { tournamentId, id } = useParams<{ tournamentId: string; id: string }>();
+
+  const tid = Number(tournamentId);
+  const did = Number(id);
 
   const [poolId, setPoolId] = useState<number | undefined>(undefined);
-  const [status, setStatus] = useState<'pending' | 'completed' | undefined>(undefined);
+  const [status, setStatus] = useState<'pending' | 'completed' | undefined>(
+    undefined
+  );
   const [page, setPage] = useState(1);
 
   const limit = 20;
   const offset = (page - 1) * limit;
 
-  const { data: division } = useDivision(divisionId);
-  const { data, isLoading, error, refetch } = useMatches(divisionId, {
+  const { data: division } = useDivision(tid, did);
+  const { data, isLoading, error, refetch } = useMatches(tid, did, {
     limit,
     offset,
     poolId,
     status,
   });
 
-  if (isLoading) return <Loading message="Loading matches..." />;
-  if (error) return <ErrorMessage error={error} onRetry={refetch} />;
-  if (!data) return null;
+  if (isLoading) {
+    return <Loading message="Loading matches..." />;
+  }
+
+  if (error) {
+    return <ErrorMessage error={error} onRetry={refetch} />;
+  }
+
+  if (!data) {
+    return null;
+  }
 
   const { data: matches, meta } = data;
   const totalPages = Math.ceil(meta.total / limit);
@@ -51,7 +68,9 @@ export const MatchesPage = () => {
 
   const handleStatusChange = (event: SelectChangeEvent<string>) => {
     const value = event.target.value;
-    setStatus(value === 'all' ? undefined : (value as 'pending' | 'completed'));
+    setStatus(
+      value === 'all' ? undefined : (value as 'pending' | 'completed')
+    );
     setPage(1);
   };
 

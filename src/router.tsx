@@ -1,3 +1,21 @@
+/**
+ * Application Router Configuration
+ *
+ * UPDATED: Phase 3 - Tournament Hierarchy
+ *
+ * Public Routes:
+ * - / → HomePage
+ * - /tournaments → TournamentsPage (list all tournaments)
+ * - /tournaments/:tournamentId → TournamentDetailPage (tournament info + divisions)
+ * - /tournaments/:tournamentId/divisions → DivisionsPage (divisions in tournament)
+ * - /tournaments/:tournamentId/divisions/:id → DivisionDetailPage
+ *   - /tournaments/:tournamentId/divisions/:id/standings → StandingsPage (default)
+ *   - /tournaments/:tournamentId/divisions/:id/matches → MatchesPage
+ *
+ * Admin Routes: (TODO: Will need tournament support in future phase)
+ * - /admin/* → Admin dashboard and management
+ */
+
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { HomePage } from './pages/HomePage';
@@ -25,21 +43,53 @@ import { AllPoolsPage } from '@/pages/admin/AllPoolsPage';
 import { AllMatchesPage } from '@/pages/admin/AllMatchesPage';
 import { SettingsPage } from '@/pages/admin/SettingsPage';
 
+// NEW: Tournament pages (Phase 3)
+import { TournamentsPage } from '@/pages/TournamentsPage';
+import { TournamentDetailPage } from '@/pages/TournamentDetailPage';
+
 export const router = createBrowserRouter([
+  // ============================================
+  // PUBLIC ROUTES
+  // ============================================
   {
     path: '/',
     element: <Layout />,
     children: [
+      // Home page
       {
         index: true,
         element: <HomePage />,
       },
+
+      // ============================================
+      // TOURNAMENT ROUTES (NEW - Phase 3)
+      // ============================================
+
+      // List all tournaments
       {
-        path: 'divisions',
+        path: 'tournaments',
+        element: <TournamentsPage />,
+      },
+
+      // Single tournament detail (shows divisions)
+      {
+        path: 'tournaments/:tournamentId',
+        element: <TournamentDetailPage />,
+      },
+
+      // ============================================
+      // DIVISION ROUTES (UPDATED - Now nested under tournament)
+      // ============================================
+
+      // List divisions in a tournament
+      {
+        path: 'tournaments/:tournamentId/divisions',
         element: <DivisionsPage />,
       },
+
+      // Single division detail with nested tabs
       {
-        path: 'divisions/:id',
+        path: 'tournaments/:tournamentId/divisions/:id',
         element: <DivisionDetailPage />,
         children: [
           {
@@ -58,17 +108,27 @@ export const router = createBrowserRouter([
       },
     ],
   },
+
+  // ============================================
+  // AUTH ROUTES
+  // ============================================
+
   // Login page (public)
   {
     path: '/login',
     element: <LoginPage />,
   },
+
   // Unauthorized page (public)
   {
     path: '/unauthorized',
     element: <UnauthorizedPage />,
   },
-  // Protected admin routes
+
+  // ============================================
+  // ADMIN ROUTES (Protected)
+  // TODO: Will need tournament support in future phase
+  // ============================================
   {
     element: <ProtectedRoute requireAdmin={true} />,
     children: [
@@ -145,7 +205,10 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  // 404 fallback
+
+  // ============================================
+  // 404 FALLBACK
+  // ============================================
   {
     path: '*',
     element: <NotFoundPage />,

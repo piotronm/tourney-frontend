@@ -1,3 +1,8 @@
+/**
+ * DivisionCard - Clickable card component for division list
+ * UPDATED: Phase 3 - Now requires tournamentId prop for navigation
+ */
+
 import {
   Card,
   CardContent,
@@ -13,15 +18,17 @@ import {
   SportsSoccer as MatchesIcon,
   CheckCircle as CompletedIcon,
 } from '@mui/icons-material';
+import { Link } from 'react-router-dom';
 import type { Division } from '@/api/types';
 import { formatDate } from '@/utils/formatters';
 
 interface DivisionCardProps {
   division: Division;
+  tournamentId: number;
   onClick?: (division: Division) => void;
 }
 
-export const DivisionCard = ({ division, onClick }: DivisionCardProps) => {
+export const DivisionCard = ({ division, tournamentId, onClick }: DivisionCardProps) => {
   const { name, createdAt, stats } = division;
   const completionPercentage =
     stats.matches > 0
@@ -29,9 +36,22 @@ export const DivisionCard = ({ division, onClick }: DivisionCardProps) => {
       : 0;
 
   return (
-    <Card>
-      <CardActionArea onClick={() => onClick?.(division)}>
-        <CardContent>
+    <Card
+      component={onClick ? 'div' : Link}
+      to={onClick ? undefined : `/tournaments/${tournamentId}/divisions/${division.id}`}
+      sx={{
+        textDecoration: 'none',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'box-shadow 0.3s',
+        '&:hover': {
+          boxShadow: 6,
+        },
+      }}
+    >
+      <CardActionArea onClick={() => onClick?.(division)} sx={{ flexGrow: 1 }}>
+        <CardContent sx={{ height: '100%' }}>
           <Typography variant="h6" component="h3" gutterBottom>
             {name}
           </Typography>
