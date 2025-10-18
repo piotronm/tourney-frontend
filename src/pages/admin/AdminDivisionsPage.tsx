@@ -14,9 +14,11 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
+import { FileDownload } from '@mui/icons-material';
 import { useDivisions } from '@/hooks/admin/useDivisions';
 import { useDeleteDivision } from '@/hooks/admin/useDeleteDivision';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useExportDashboard } from '@/hooks/useExportDashboard';
 import { DivisionCard } from '@/components/admin/DivisionCard';
 import { DeleteDivisionDialog } from '@/components/admin/DeleteDivisionDialog';
 import type { Division } from '@/types/division';
@@ -36,6 +38,7 @@ import type { Division } from '@/types/division';
  */
 export const AdminDivisionsPage = () => {
   const navigate = useNavigate();
+  const { exportDashboard } = useExportDashboard();
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Division | null>(null);
@@ -88,6 +91,11 @@ export const AdminDivisionsPage = () => {
     setDeleteTarget(null);
   };
 
+  const handleExport = () => {
+    const divisions = data?.data || [];
+    exportDashboard(divisions);
+  };
+
   const totalPages = data ? Math.ceil(data.meta.total / limit) : 0;
   const divisions = data?.data || [];
 
@@ -98,13 +106,24 @@ export const AdminDivisionsPage = () => {
         <Typography variant="h4" component="h1" fontWeight="bold">
           Manage Divisions
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateClick}
-        >
-          Create Division
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {divisions.length > 0 && (
+            <Button
+              variant="outlined"
+              startIcon={<FileDownload />}
+              onClick={handleExport}
+            >
+              Export
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateClick}
+          >
+            Create Division
+          </Button>
+        </Box>
       </Box>
 
       {/* Search Bar */}

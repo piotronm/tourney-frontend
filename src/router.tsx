@@ -19,6 +19,11 @@ import { AddTeamPage } from '@/pages/admin/AddTeamPage';
 import { EditTeamPage } from '@/pages/admin/EditTeamPage';
 import { DivisionPoolsPage } from '@/pages/admin/DivisionPoolsPage';
 import { DivisionMatchesPage } from '@/pages/admin/DivisionMatchesPage';
+import { DivisionHubPage } from '@/pages/admin/DivisionHubPage';
+import { AllTeamsPage } from '@/pages/admin/AllTeamsPage';
+import { AllPoolsPage } from '@/pages/admin/AllPoolsPage';
+import { AllMatchesPage } from '@/pages/admin/AllMatchesPage';
+import { SettingsPage } from '@/pages/admin/SettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -79,6 +84,23 @@ export const router = createBrowserRouter([
             path: 'dashboard',
             element: <DashboardPage />,
           },
+          // Global views (placeholder pages)
+          {
+            path: 'teams',
+            element: <AllTeamsPage />,
+          },
+          {
+            path: 'pools',
+            element: <AllPoolsPage />,
+          },
+          {
+            path: 'matches',
+            element: <AllMatchesPage />,
+          },
+          {
+            path: 'settings',
+            element: <SettingsPage />,
+          },
           // Division management routes
           {
             path: 'divisions',
@@ -87,6 +109,10 @@ export const router = createBrowserRouter([
           {
             path: 'divisions/new',
             element: <CreateDivisionPage />,
+          },
+          {
+            path: 'divisions/:id',
+            element: <DivisionHubPage />,
           },
           {
             path: 'divisions/:id/edit',

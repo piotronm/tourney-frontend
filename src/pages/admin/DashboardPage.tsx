@@ -9,9 +9,22 @@ import {
   Button,
   CircularProgress,
   Alert,
+  LinearProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import {
+  EmojiEvents,
+  Groups,
+  SportsTennis,
+  CheckCircle,
+  FileDownload,
+} from '@mui/icons-material';
 import { useDivisions } from '@/hooks/admin/useDivisions';
+import { useExportDashboard } from '@/hooks/useExportDashboard';
+import { PendingActionsWidget } from '@/components/admin/PendingActionsWidget';
+import { QuickActionsGrid } from '@/components/admin/QuickActionsGrid';
+import { RecentActivityFeed } from '@/components/admin/RecentActivityFeed';
+import { EnhancedEmptyState } from '@/components/ui/EnhancedEmptyState';
 
 /**
  * Admin Dashboard Page
@@ -25,6 +38,7 @@ import { useDivisions } from '@/hooks/admin/useDivisions';
  */
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  const { exportDashboard } = useExportDashboard();
 
   // Fetch all divisions to calculate stats (max 100 due to backend limit)
   const { data, isLoading, isError } = useDivisions({ limit: 100 });
@@ -35,6 +49,11 @@ export const DashboardPage = () => {
 
   const handleManageDivisions = () => {
     navigate('/admin/divisions');
+  };
+
+  const handleExport = () => {
+    const divisions = data?.data || [];
+    exportDashboard(divisions);
   };
 
   if (isLoading) {
@@ -64,13 +83,24 @@ export const DashboardPage = () => {
   return (
     <Container maxWidth="lg">
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-          Dashboard
-        </Typography>
-        <Typography color="text.secondary">
-          Welcome to your tournament management dashboard
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Box>
+          <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
+            Dashboard
+          </Typography>
+          <Typography color="text.secondary">
+            Welcome to your tournament management dashboard
+          </Typography>
+        </Box>
+        {totalDivisions > 0 && (
+          <Button
+            variant="outlined"
+            startIcon={<FileDownload />}
+            onClick={handleExport}
+          >
+            Export Stats
+          </Button>
+        )}
       </Box>
 
       {/* Statistics Cards */}
@@ -78,12 +108,17 @@ export const DashboardPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Total Divisions
-              </Typography>
-              <Typography variant="h3" component="div">
-                {totalDivisions}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" variant="caption" display="block">
+                    Total Divisions
+                  </Typography>
+                  <Typography variant="h4" sx={{ mt: 1 }}>
+                    {totalDivisions}
+                  </Typography>
+                </Box>
+                <EmojiEvents sx={{ fontSize: 48, color: 'primary.light', opacity: 0.7 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -91,12 +126,17 @@ export const DashboardPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Total Teams
-              </Typography>
-              <Typography variant="h3" component="div">
-                {totalTeams}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" variant="caption" display="block">
+                    Total Teams
+                  </Typography>
+                  <Typography variant="h4" sx={{ mt: 1 }}>
+                    {totalTeams}
+                  </Typography>
+                </Box>
+                <Groups sx={{ fontSize: 48, color: 'secondary.light', opacity: 0.7 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -104,12 +144,17 @@ export const DashboardPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Total Matches
-              </Typography>
-              <Typography variant="h3" component="div">
-                {totalMatches}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" variant="caption" display="block">
+                    Total Matches
+                  </Typography>
+                  <Typography variant="h4" sx={{ mt: 1 }}>
+                    {totalMatches}
+                  </Typography>
+                </Box>
+                <SportsTennis sx={{ fontSize: 48, color: 'warning.light', opacity: 0.7 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -117,62 +162,58 @@ export const DashboardPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Completed Matches
-              </Typography>
-              <Typography variant="h3" component="div">
-                {completedMatches}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {totalMatches > 0 ? `${Math.round((completedMatches / totalMatches) * 100)}%` : '0%'}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" variant="caption" display="block">
+                    Completion Rate
+                  </Typography>
+                  <Typography variant="h4" sx={{ mt: 1 }}>
+                    {totalMatches > 0 ? Math.round((completedMatches / totalMatches) * 100) : 0}%
+                  </Typography>
+                </Box>
+                <CheckCircle sx={{
+                  fontSize: 48,
+                  color: totalMatches > 0 && completedMatches === totalMatches ? 'success.light' : 'info.light',
+                  opacity: 0.7
+                }} />
+              </Box>
+              {totalMatches > 0 && (
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.round((completedMatches / totalMatches) * 100)}
+                  sx={{ mt: 2, height: 6, borderRadius: 1 }}
+                />
+              )}
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Quick Actions
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2 }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreateDivision}
-            >
-              Create Division
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={handleManageDivisions}
-            >
-              Manage Divisions
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+      {/* Pending Actions Widget */}
+      <PendingActionsWidget />
+
+      {/* Quick Actions Grid */}
+      <QuickActionsGrid />
+
+      {/* Recent Activity Feed */}
+      <RecentActivityFeed />
 
       {/* Empty State CTA */}
       {totalDivisions === 0 && (
-        <Box sx={{ textAlign: 'center', py: 6 }}>
-          <Typography variant="h6" gutterBottom>
-            Get Started
-          </Typography>
-          <Typography color="text.secondary" gutterBottom>
-            Create your first tournament division to begin
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateDivision}
-            sx={{ mt: 2 }}
-          >
-            Create First Division
-          </Button>
-        </Box>
+        <EnhancedEmptyState
+          emoji="🎉"
+          title="Welcome to BracketIQ!"
+          description="Get your tournament up and running in just a few steps."
+          steps={[
+            'Create a division (e.g., "Summer League 2025")',
+            'Add teams manually or import from CSV',
+            'Create pools and assign teams',
+            'Generate matches automatically',
+            'Enter scores and track standings',
+          ]}
+          actionLabel="Create First Division"
+          onAction={handleCreateDivision}
+        />
       )}
     </Container>
   );
