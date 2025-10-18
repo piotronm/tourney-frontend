@@ -21,8 +21,17 @@ export const useUpdatePool = (divisionId: number) => {
       queryClient.invalidateQueries({ queryKey: ['pools', divisionId] });
       toast.success('Pool updated successfully!');
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update pool');
+    onError: (error: Error & { response?: { status?: number } }) => {
+      // Handle 404 - pool was already deleted
+      if (error.response?.status === 404 || error.message?.includes('not found')) {
+        toast.error('This pool was already deleted. Refreshing list...');
+        // Refresh pool list to remove stale data
+        queryClient.invalidateQueries({ queryKey: ['pools', divisionId] });
+        queryClient.invalidateQueries({ queryKey: ['admin-pools'] });
+      } else {
+        // Other errors
+        toast.error(error.message || 'Failed to update pool');
+      }
     },
   });
 };
