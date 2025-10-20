@@ -1,5 +1,5 @@
 import { Box, Typography, Card, CardContent, CardActionArea, Grid, Chip, CircularProgress, Button } from '@mui/material';
-import { Dashboard, Edit, Public, Settings } from '@mui/icons-material';
+import { Dashboard, Edit, Public, Settings, HowToReg } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTournament } from '@/hooks/admin/useTournament';
 
@@ -26,6 +26,13 @@ export const TournamentAdminHubPage = () => {
   }
 
   const actions = [
+    {
+      title: 'Manage Registrations',
+      icon: <HowToReg sx={{ fontSize: 40 }} />,
+      description: 'Register players and manage tournament participants',
+      path: `/admin/tournaments/${tid}/registrations`,
+      color: 'info.main',
+    },
     {
       title: 'Manage Divisions',
       icon: <Dashboard sx={{ fontSize: 40 }} />,

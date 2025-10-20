@@ -1,7 +1,7 @@
 /**
  * Application Router Configuration
  *
- * UPDATED: Phase 4B - Admin Tournament Hierarchy
+ * UPDATED: Phase 1C-Part 1 - Admin Dashboard Landing Page
  *
  * Public Routes:
  * - / → HomePage
@@ -12,8 +12,11 @@
  *   - /tournaments/:tournamentId/divisions/:id/standings → StandingsPage (default)
  *   - /tournaments/:tournamentId/divisions/:id/matches → MatchesPage
  *
- * Admin Routes (UPDATED - Phase 4B):
- * - /admin → Redirect to /admin/tournaments
+ * Admin Routes (UPDATED - Phase 1C-Part 2):
+ * - /admin → DashboardPage (landing page with tiles)
+ * - /admin/players → PlayersListPage (list)
+ * - /admin/players/add → AddPlayerPage
+ * - /admin/players/:id/edit → EditPlayerPage
  * - /admin/tournaments → AdminTournamentsPage (list)
  * - /admin/tournaments/new → CreateTournamentPage
  * - /admin/tournaments/:tournamentId → TournamentAdminHubPage
@@ -44,12 +47,18 @@ import { AdminTournamentsPage } from '@/pages/admin/AdminTournamentsPage';
 import { CreateTournamentPage } from '@/pages/admin/CreateTournamentPage';
 import { EditTournamentPage } from '@/pages/admin/EditTournamentPage';
 import { TournamentAdminHubPage } from '@/pages/admin/TournamentAdminHubPage';
+import { TournamentRegistrationsPage } from '@/pages/admin/TournamentRegistrationsPage';
 
 // Division admin pages
 import { AdminDivisionsPage } from '@/pages/admin/AdminDivisionsPage';
 import { CreateDivisionPage } from '@/pages/admin/CreateDivisionPage';
 import { EditDivisionPage } from '@/pages/admin/EditDivisionPage';
 import { DivisionHubPage } from '@/pages/admin/DivisionHubPage';
+
+// Player admin pages (NEW - Phase 1C-Part 2)
+import { PlayersListPage } from '@/pages/admin/PlayersListPage';
+import { AddPlayerPage } from '@/pages/admin/AddPlayerPage';
+import { EditPlayerPage } from '@/pages/admin/EditPlayerPage';
 
 // Team admin pages
 import { DivisionTeamsPage } from '@/pages/admin/DivisionTeamsPage';
@@ -158,14 +167,37 @@ export const router = createBrowserRouter([
         path: '/admin',
         element: <AdminLayout />,
         children: [
-          // Redirect /admin and /admin/dashboard to tournaments
+          // Show dashboard landing page at /admin
           {
             index: true,
-            element: <Navigate to="/admin/tournaments" replace />,
+            element: <DashboardPage />,
           },
+          // Redirect old /admin/dashboard to new /admin
           {
             path: 'dashboard',
-            element: <Navigate to="/admin/tournaments" replace />,
+            element: <Navigate to="/admin" replace />,
+          },
+
+          // ============================================
+          // PLAYER ADMIN ROUTES (NEW - Phase 1C-Part 2)
+          // ============================================
+
+          // List all players
+          {
+            path: 'players',
+            element: <PlayersListPage />,
+          },
+
+          // Add new player
+          {
+            path: 'players/add',
+            element: <AddPlayerPage />,
+          },
+
+          // Edit player
+          {
+            path: 'players/:id/edit',
+            element: <EditPlayerPage />,
           },
 
           // ============================================
@@ -194,6 +226,12 @@ export const router = createBrowserRouter([
           {
             path: 'tournaments/:tournamentId/edit',
             element: <EditTournamentPage />,
+          },
+
+          // Tournament registrations (Phase 2B)
+          {
+            path: 'tournaments/:tournamentId/registrations',
+            element: <TournamentRegistrationsPage />,
           },
 
           // ============================================
