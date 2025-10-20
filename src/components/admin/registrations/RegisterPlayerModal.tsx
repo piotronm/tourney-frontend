@@ -58,6 +58,17 @@ export function RegisterPlayerModal({
   const players = playersData?.data || [];
   const divisions = divisionsData?.data || [];
 
+  // DEBUG: Log divisions data
+  useEffect(() => {
+    console.log('=== DIVISIONS DEBUG ===');
+    console.log('tournamentId:', tournamentId);
+    console.log('divisionsData:', divisionsData);
+    console.log('divisionsLoading:', divisionsLoading);
+    console.log('divisions array:', divisions);
+    console.log('divisions count:', divisions.length);
+    console.log('======================');
+  }, [tournamentId, divisionsData, divisionsLoading, divisions]);
+
   // Reset form when modal closes
   useEffect(() => {
     if (!open) {

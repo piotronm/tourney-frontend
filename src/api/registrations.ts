@@ -4,7 +4,10 @@ import type {
   CreateRegistrationInput
 } from '@/types/registration';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// Admin API endpoint - registrations require authentication
+// Replace /api/public with /api for admin endpoints
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/public';
+const API_BASE = API_BASE_URL.replace('/api/public', '/api');
 
 export interface ListRegistrationsParams {
   divisionId?: number;

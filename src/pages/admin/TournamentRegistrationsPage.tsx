@@ -27,8 +27,16 @@ import { RegistrationCard } from '@/components/admin/registrations/RegistrationC
 import type { Registration } from '@/types/registration';
 
 export function TournamentRegistrationsPage() {
-  const { id } = useParams();
-  const tournamentId = parseInt(id || '0');
+  // Fix: Route uses :tournamentId parameter, not :id
+  const { tournamentId: tournamentIdStr } = useParams();
+  const tournamentId = parseInt(tournamentIdStr || '0');
+
+  // DEBUG: Verify tournament ID is extracted correctly
+  console.log('=== REGISTRATIONS PAGE DEBUG ===');
+  console.log('URL params:', useParams());
+  console.log('tournamentId string:', tournamentIdStr);
+  console.log('tournamentId parsed:', tournamentId);
+  console.log('================================');
 
   const [divisionFilter, setDivisionFilter] = useState<string>('all');
   const [pairingFilter, setPairingFilter] = useState<string>('all');
