@@ -20,11 +20,11 @@ const adminApiClient = axios.create({
 });
 
 /**
- * Generate matches for a division based on pool configuration
+ * Generate matches for a division based on pool configuration (Phase 2C)
  * @param tournamentId - Tournament ID
  * @param divisionId - Division ID
  * @param data - Match generation parameters
- * @returns Generated matches and count
+ * @returns Response with success, message, and summary
  */
 export const generateMatches = (
   tournamentId: number,
@@ -32,14 +32,10 @@ export const generateMatches = (
   data: GenerateMatchesDto
 ): Promise<GenerateMatchesResponse> => {
   return adminApiClient
-    .post(`/tournaments/${tournamentId}/divisions/${divisionId}/generate-matches`, data)
+    .post(`/admin/tournaments/${tournamentId}/divisions/${divisionId}/generate-matches`, data)
     .then((res) => {
-      // Handle response envelope pattern (learned from pools/teams fixes)
-      // Backend might return {data: {matches, count}} or {matches, count}
-      if (res.data.data) {
-        return res.data.data; // Unwrap envelope
-      }
-      return res.data; // Direct object
+      // Phase 2C returns {success, message, summary} format
+      return res.data;
     });
 };
 

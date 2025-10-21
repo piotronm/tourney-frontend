@@ -174,22 +174,28 @@ export interface Match {
 }
 
 /**
- * Request payload for match generation
+ * Request payload for match generation (Phase 2C)
  */
 export interface GenerateMatchesDto {
-  format: 'ROUND_ROBIN' | 'SINGLE_ELIM' | 'DOUBLE_ELIM';
-  courts?: number;
-  startTime?: string;
-  matchDuration?: number;
-  breakDuration?: number;
+  regenerate?: boolean;
+  assignCourts?: boolean;
+  courtCount?: number;
 }
 
 /**
- * Response from match generation
+ * Response from match generation (Phase 2C)
  */
 export interface GenerateMatchesResponse {
-  matches: Match[];
-  count: number;
+  success: boolean;
+  message: string;
+  summary: {
+    totalMatches: number;
+    pools: number;
+    teams: number;
+    byeMatches: number;
+    totalRounds: number;
+    matchesPerPool: Record<number, number>;
+  };
 }
 
 // ============================================

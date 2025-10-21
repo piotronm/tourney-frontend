@@ -1,15 +1,9 @@
-import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Stack,
   Alert,
   Typography,
@@ -28,7 +22,7 @@ interface GenerateMatchesDialogProps {
 
 /**
  * Generate Matches Dialog
- * UPDATED: Phase 4B - Tournament Hierarchy
+ * UPDATED: Phase 2C - Uses new match generation endpoint
  */
 export const GenerateMatchesDialog = ({
   open,
@@ -39,15 +33,11 @@ export const GenerateMatchesDialog = ({
 }: GenerateMatchesDialogProps) => {
   const { mutate: generateMatches, isPending } = useGenerateMatches();
 
-  const [format, setFormat] = useState<'ROUND_ROBIN' | 'SINGLE_ELIM'>('ROUND_ROBIN');
-
   /**
    * Calculate total number of matches for round-robin
    * Formula: n * (n-1) / 2 per pool
    */
   const calculateMatchCount = () => {
-    if (format !== 'ROUND_ROBIN') return 0;
-
     return pools.reduce((total, pool) => {
       const teamCount = pool.teams?.length || 0;
       if (teamCount < 2) return total;
@@ -59,8 +49,9 @@ export const GenerateMatchesDialog = ({
   };
 
   const handleGenerate = () => {
+    // Phase 2C: Use new schema (regenerate defaults to false)
     generateMatches(
-      { tournamentId, divisionId, data: { format } },
+      { tournamentId, divisionId, data: { regenerate: false } },
       {
         onSuccess: () => {
           onClose();
@@ -78,26 +69,10 @@ export const GenerateMatchesDialog = ({
 
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 1 }}>
-          {/* Format Selection */}
-          <FormControl>
-            <FormLabel>Tournament Format</FormLabel>
-            <RadioGroup
-              value={format}
-              onChange={(e) => setFormat(e.target.value as 'ROUND_ROBIN' | 'SINGLE_ELIM')}
-            >
-              <FormControlLabel
-                value="ROUND_ROBIN"
-                control={<Radio />}
-                label="Round Robin (every team plays every other team once)"
-              />
-              <FormControlLabel
-                value="SINGLE_ELIM"
-                control={<Radio />}
-                label="Single Elimination (coming soon)"
-                disabled
-              />
-            </RadioGroup>
-          </FormControl>
+          {/* Info */}
+          <Typography variant="body2" color="text.secondary">
+            Generates round-robin matches where every team plays every other team in their pool once.
+          </Typography>
 
           {/* Preview Section */}
           {hasTeams ? (
