@@ -13,6 +13,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsDialog } from '@/components/admin/KeyboardShortcutsDialog';
+import { AdminBreadcrumbs } from '@/components/admin/Breadcrumbs';
 
 /**
  * AdminLayout - Main layout for admin section
@@ -69,6 +70,9 @@ export const AdminLayout = () => {
 
       {/* Main Content - Full Width */}
       <Box component="main" sx={{ flexGrow: 1, p: 3, bgcolor: 'background.default' }}>
+        {/* Breadcrumbs Navigation */}
+        <AdminBreadcrumbs />
+
         <Outlet />
       </Box>
 

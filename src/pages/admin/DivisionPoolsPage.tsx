@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -7,6 +7,7 @@ import {
   Stack,
   Chip,
   Alert,
+  AlertTitle,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -19,6 +20,15 @@ import {
   Checkbox,
   Toolbar,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormLabel,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -28,6 +38,9 @@ import {
   People as PeopleIcon,
   ArrowBack as ArrowBackIcon,
   AutoFixHigh as AutoFixHighIcon,
+  AutoAwesome as AutoAwesomeIcon,
+  Shuffle as ShuffleIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 import { usePools } from '@/hooks/admin/usePools';
 import { useDeletePool } from '@/hooks/admin/useDeletePool';
@@ -35,6 +48,8 @@ import { useBulkCreatePools } from '@/hooks/admin/useBulkCreatePools';
 import { useBulkDeletePools } from '@/hooks/admin/useBulkDeletePools';
 import { useDivision } from '@/hooks/admin/useDivision';
 import { useTournament } from '@/hooks/admin/useTournament';
+import { useTeams } from '@/hooks/admin/useTeams';
+import { useDistributeTeams } from '@/hooks/admin/useDistributeTeams';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -43,6 +58,8 @@ import { DeletePoolDialog } from '@/components/admin/DeletePoolDialog';
 import { EditPoolDialog } from '@/components/admin/EditPoolDialog';
 import { GenerateMatchesDialog } from '@/components/admin/GenerateMatchesDialog';
 import { BulkDeletePoolsDialog } from '@/components/admin/BulkDeletePoolsDialog';
+import { ContextBar } from '@/components/admin/ContextBar';
+import { BackButton } from '@/components/admin/BackButton';
 import type { Pool } from '@/types/pool';
 
 /**
@@ -62,17 +79,28 @@ import type { Pool } from '@/types/pool';
  * - Tournament context breadcrumb navigation
  */
 export const DivisionPoolsPage = () => {
+  // ========== HOOKS SECTION (ALWAYS FIRST) ==========
   const { tournamentId, id } = useParams<{ tournamentId: string; id: string }>();
   const navigate = useNavigate();
   const parsedTournamentId = tournamentId ? parseInt(tournamentId, 10) : undefined;
   const parsedDivisionId = id ? parseInt(id, 10) : undefined;
 
+  // Data fetching hooks
   const { data: tournament } = useTournament(parsedTournamentId);
   const { data: division, isLoading: divisionLoading } = useDivision(parsedTournamentId, parsedDivisionId);
   const { data: pools, isLoading: poolsLoading, error } = usePools(parsedTournamentId, parsedDivisionId);
+  const { data: teamsData } = useTeams(parsedTournamentId, {
+    divisionId: parsedDivisionId!,
+    limit: 100 // Get all teams for the division
+  });
   const { mutate: deletePool, isPending: isDeleting } = useDeletePool(parsedDivisionId!);
   const { mutate: bulkCreatePools, isPending: isCreatingBulk } = useBulkCreatePools();
   const { mutate: bulkDeletePools, isPending: isDeletingBulk } = useBulkDeletePools(parsedDivisionId!);
+
+  // Distribution state
+  const [distributeDialogOpen, setDistributeDialogOpen] = useState(false);
+  const [distributionStrategy, setDistributionStrategy] = useState<'balanced' | 'random'>('balanced');
+  const distributeTeamsMutation = useDistributeTeams();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -89,6 +117,29 @@ export const DivisionPoolsPage = () => {
     pool: Pool | null;
   }>({ open: false, pool: null });
 
+  // Computed values (useMemo) - MUST be before any conditional returns
+  const unassignedTeamsCount = useMemo(() => {
+    // teamsData has shape: { data: Team[], meta: {...} }
+    return teamsData?.data?.filter((t) => !t.poolId).length || 0;
+  }, [teamsData]);
+
+  const poolCount = useMemo(() => {
+    return pools?.length || 0;
+  }, [pools]);
+
+  const sortedPools = useMemo(() => {
+    return pools?.sort((a, b) => a.orderIndex - b.orderIndex) || [];
+  }, [pools]);
+
+  // ========== LOGIC SECTION (AFTER ALL HOOKS) ==========
+  // DEBUG: Auto-Distribute button visibility
+  console.log('=== AUTO-DISTRIBUTE DEBUG ===');
+  console.log('poolCount:', poolCount);
+  console.log('unassignedTeamsCount:', unassignedTeamsCount);
+  console.log('teamsData:', teamsData);
+  console.log('pools:', pools);
+  console.log('Button should show?', poolCount > 0 && unassignedTeamsCount > 0);
+  console.log('============================');
   // Loading state
   if (divisionLoading || poolsLoading) {
     return <Loading />;
@@ -112,8 +163,6 @@ export const DivisionPoolsPage = () => {
     );
   }
 
-  const sortedPools = pools?.sort((a, b) => a.orderIndex - b.orderIndex) || [];
-
   // Calculate next label and order index
   const getNextLabel = () => {
     if (!pools || pools.length === 0) return 'A';
@@ -124,6 +173,24 @@ export const DivisionPoolsPage = () => {
   const getNextOrderIndex = () => {
     if (!pools || pools.length === 0) return 1;
     return sortedPools[sortedPools.length - 1].orderIndex + 1;
+  };
+
+  // Handler for Auto-Distribute button
+  const handleDistribute = () => {
+    if (!parsedTournamentId || !parsedDivisionId) return;
+
+    distributeTeamsMutation.mutate(
+      {
+        tournamentId: parsedTournamentId,
+        divisionId: parsedDivisionId,
+        strategy: distributionStrategy
+      },
+      {
+        onSuccess: () => {
+          setDistributeDialogOpen(false);
+        }
+      }
+    );
   };
 
   const handleEditClick = (pool: Pool) => {
@@ -239,14 +306,21 @@ export const DivisionPoolsPage = () => {
         <Typography color="text.primary">Pools</Typography>
       </Breadcrumbs>
 
+      {/* Context Bar */}
+      {tournament && division && (
+        <ContextBar
+          tournamentId={parsedTournamentId!}
+          tournamentName={tournament.name}
+          divisionId={parsedDivisionId!}
+          divisionName={division.name}
+        />
+      )}
+
       {/* Back Button */}
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
-        sx={{ mb: 2 }}
-      >
-        Back to Division
-      </Button>
+      <BackButton
+        to={`/admin/tournaments/${tournamentId}/divisions/${id}`}
+        label="Back to Division"
+      />
 
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -307,6 +381,18 @@ export const DivisionPoolsPage = () => {
               Create 16 Pools (A-P)
             </MenuItem>
           </Menu>
+          {/* Auto-Distribute Button - Show if there are pools and unassigned teams */}
+          {poolCount > 0 && unassignedTeamsCount > 0 && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<AutoAwesomeIcon />}
+              onClick={() => setDistributeDialogOpen(true)}
+              disabled={distributeTeamsMutation.isPending}
+            >
+              Auto-Distribute Teams ({unassignedTeamsCount})
+            </Button>
+          )}
           <Button
             variant={selectionMode ? 'contained' : 'outlined'}
             color={selectionMode ? 'secondary' : 'primary'}
@@ -337,6 +423,22 @@ export const DivisionPoolsPage = () => {
             </Button>
           </Toolbar>
         </Paper>
+      )}
+
+      {/* Info Alerts */}
+      {unassignedTeamsCount > 0 && poolCount > 0 && (
+        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 3 }}>
+          <AlertTitle>Unassigned Teams</AlertTitle>
+          {unassignedTeamsCount} team{unassignedTeamsCount !== 1 ? 's are' : ' is'} not
+          assigned to any pool. Use "Auto-Distribute" to assign them automatically.
+        </Alert>
+      )}
+
+      {poolCount === 0 && teamsData && teamsData.length > 0 && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          <AlertTitle>No Pools Created</AlertTitle>
+          Create pools first before distributing teams.
+        </Alert>
       )}
 
       {/* Empty State */}
@@ -487,6 +589,102 @@ export const DivisionPoolsPage = () => {
         onConfirm={handleBulkDeleteConfirm}
         isLoading={isDeletingBulk}
       />
+
+      {/* Distribution Dialog */}
+      <Dialog
+        open={distributeDialogOpen}
+        onClose={() => setDistributeDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Auto-Distribute Teams to Pools
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Distribute {unassignedTeamsCount} unassigned team
+              {unassignedTeamsCount !== 1 ? 's' : ''} across {poolCount} pool
+              {poolCount !== 1 ? 's' : ''}.
+            </Typography>
+
+            <FormLabel component="legend" sx={{ mb: 2, fontWeight: 600 }}>
+              Distribution Strategy
+            </FormLabel>
+            <RadioGroup
+              value={distributionStrategy}
+              onChange={(e) =>
+                setDistributionStrategy(e.target.value as 'balanced' | 'random')
+              }
+            >
+              <FormControlLabel
+                value="balanced"
+                control={<Radio />}
+                label={
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Balanced (Recommended)
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Teams distributed evenly across pools (e.g., 5-5-5-5)
+                    </Typography>
+                  </Box>
+                }
+                sx={{ mb: 1 }}
+              />
+              <FormControlLabel
+                value="random"
+                control={<Radio />}
+                label={
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Random
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Teams shuffled randomly before distribution
+                    </Typography>
+                  </Box>
+                }
+              />
+            </RadioGroup>
+
+            {/* Preview */}
+            <Alert severity="info" icon={<InfoIcon />} sx={{ mt: 3 }}>
+              <Typography variant="caption">
+                <strong>Approximate result:</strong> Each pool will have{' '}
+                {Math.floor(unassignedTeamsCount / poolCount)}-
+                {Math.ceil(unassignedTeamsCount / poolCount)} teams
+              </Typography>
+            </Alert>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setDistributeDialogOpen(false)}
+            disabled={distributeTeamsMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleDistribute}
+            disabled={distributeTeamsMutation.isPending}
+            startIcon={
+              distributeTeamsMutation.isPending ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : distributionStrategy === 'random' ? (
+                <ShuffleIcon />
+              ) : (
+                <AutoAwesomeIcon />
+              )
+            }
+          >
+            {distributeTeamsMutation.isPending
+              ? 'Distributing...'
+              : 'Distribute Teams'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

@@ -19,6 +19,7 @@ export interface Registration {
   pairingType: PairingType;
   status: RegistrationStatus;
   notes: string | null;
+  teamId: number | null; // Day 1: Link to auto-created team
   registeredAt: string;
   createdAt: string;
   updatedAt: string;

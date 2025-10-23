@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Box,
@@ -13,40 +13,109 @@ import {
   Chip,
   Stack,
   Alert,
+  AlertTitle,
   CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
   Person as PersonIcon,
   People as PeopleIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  GroupAdd as GroupAddIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { useRegistrations } from '@/hooks/admin/useRegistrations';
+import { useTournament } from '@/hooks/admin/useTournament';
+import { useGenerateTeamsFromRegistrations } from '@/hooks/admin/useGenerateTeamsFromRegistrations';
 import { RegisterPlayerModal } from '@/components/admin/registrations/RegisterPlayerModal';
 import { RegistrationCard } from '@/components/admin/registrations/RegistrationCard';
+import { ContextBar } from '@/components/admin/ContextBar';
 import type { Registration } from '@/types/registration';
 
 export function TournamentRegistrationsPage() {
+  // ========== HOOKS SECTION (ALWAYS FIRST) ==========
   // Fix: Route uses :tournamentId parameter, not :id
-  const { tournamentId: tournamentIdStr } = useParams();
+  const params = useParams();
+  const { tournamentId: tournamentIdStr } = params;
   const tournamentId = parseInt(tournamentIdStr || '0');
 
-  // DEBUG: Verify tournament ID is extracted correctly
-  console.log('=== REGISTRATIONS PAGE DEBUG ===');
-  console.log('URL params:', useParams());
-  console.log('tournamentId string:', tournamentIdStr);
-  console.log('tournamentId parsed:', tournamentId);
-  console.log('================================');
-
+  // State hooks
   const [divisionFilter, setDivisionFilter] = useState<string>('all');
   const [pairingFilter, setPairingFilter] = useState<string>('all');
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
 
+  // Data fetching hooks
+  const { data: tournament } = useTournament(tournamentId);
   const { data, isLoading, error } = useRegistrations(tournamentId, {
     divisionId: divisionFilter !== 'all' ? parseInt(divisionFilter) : undefined,
     pairingType: pairingFilter !== 'all' ? pairingFilter : undefined
   });
 
+  // Mutation hooks
+  const generateTeamsMutation = useGenerateTeamsFromRegistrations();
+
+  // Computed values (useMemo) - MUST be before any conditional returns
+  const eligibleRegistrations = useMemo(() => {
+    const regs = data?.data || [];
+    return regs.filter(
+      r =>
+        r.pairingType === 'has_partner' &&
+        r.status === 'registered' &&
+        !r.teamId
+    );
+  }, [data]);
+
+  const eligibleCount = useMemo(() => {
+    return eligibleRegistrations.length;
+  }, [eligibleRegistrations]);
+
+  const registrations = useMemo(() => {
+    return data?.data || [];
+  }, [data]);
+
+  const stats = useMemo(() => {
+    return data?.meta;
+  }, [data]);
+
+  // ========== LOGIC SECTION (AFTER ALL HOOKS) ==========
+  // DEBUG: Verify tournament ID is extracted correctly
+  console.log('=== REGISTRATIONS PAGE DEBUG ===');
+  console.log('URL params:', params);
+  console.log('tournamentId string:', tournamentIdStr);
+  console.log('tournamentId parsed:', tournamentId);
+  console.log('================================');
+
+  // Handler for Generate Teams button
+  const handleGenerateTeams = () => {
+    if (eligibleCount === 0) {
+      return;
+    }
+
+    // Get the selected division or use the first division from eligible registrations
+    const selectedDivisionId = divisionFilter !== 'all'
+      ? parseInt(divisionFilter)
+      : eligibleRegistrations[0]?.divisionId;
+
+    if (!selectedDivisionId) {
+      alert('Please select a division first');
+      return;
+    }
+
+    // Confirmation dialog
+    const confirmed = window.confirm(
+      `Generate teams for ${eligibleCount} registration${eligibleCount !== 1 ? 's' : ''}?\n\n` +
+      'This will automatically create teams for all players with partners who don\'t have teams yet.'
+    );
+
+    if (confirmed) {
+      generateTeamsMutation.mutate({
+        tournamentId,
+        divisionId: selectedDivisionId
+      });
+    }
+  };
+
+  // Conditional returns AFTER all hooks
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -62,9 +131,6 @@ export function TournamentRegistrationsPage() {
       </Alert>
     );
   }
-
-  const registrations = data?.data || [];
-  const stats = data?.meta;
 
   // Group registrations by division
   const divisionGroups = registrations.reduce((acc, reg) => {
@@ -83,19 +149,50 @@ export function TournamentRegistrationsPage() {
 
   return (
     <Box>
+      {/* Context Bar */}
+      {tournament && (
+        <ContextBar
+          tournamentId={tournamentId}
+          tournamentName={tournament.name}
+          showSettings={false}
+        />
+      )}
+
       {/* Header with Stats */}
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h5">
             Registrations ({stats?.total || 0})
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setRegisterModalOpen(true)}
-          >
-            Register Player
-          </Button>
+          <Stack direction="row" spacing={2}>
+            {/* Generate Teams Button - Show if there are eligible registrations */}
+            {eligibleCount > 0 && (
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={
+                  generateTeamsMutation.isPending ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <GroupAddIcon />
+                  )
+                }
+                onClick={handleGenerateTeams}
+                disabled={generateTeamsMutation.isPending}
+              >
+                {generateTeamsMutation.isPending
+                  ? 'Generating...'
+                  : `Generate Teams (${eligibleCount})`}
+              </Button>
+            )}
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setRegisterModalOpen(true)}
+            >
+              Register Player
+            </Button>
+          </Stack>
         </Box>
 
         {/* Statistics Chips */}
@@ -155,6 +252,16 @@ export function TournamentRegistrationsPage() {
           </FormControl>
         </Stack>
       </Box>
+
+      {/* Info Alert for Eligible Registrations */}
+      {eligibleCount > 0 && (
+        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 3 }}>
+          <AlertTitle>Registrations Ready for Teams</AlertTitle>
+          {eligibleCount} registration{eligibleCount !== 1 ? 's' : ''} with
+          partners can be converted to teams automatically. Click "Generate
+          Teams" to create them all at once.
+        </Alert>
+      )}
 
       {/* Registration List */}
       {registrations.length === 0 ? (

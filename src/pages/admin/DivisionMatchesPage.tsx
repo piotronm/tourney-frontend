@@ -22,6 +22,8 @@ import { Loading } from '@/components/ui/Loading';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MatchCard } from '@/components/matches/MatchCard';
+import { ContextBar } from '@/components/admin/ContextBar';
+import { BackButton } from '@/components/admin/BackButton';
 
 /**
  * Division Matches Page
@@ -122,14 +124,21 @@ export const DivisionMatchesPage = () => {
         <Typography color="text.primary">Matches</Typography>
       </Breadcrumbs>
 
+      {/* Context Bar */}
+      {tournament && division && (
+        <ContextBar
+          tournamentId={parsedTournamentId!}
+          tournamentName={tournament.name}
+          divisionId={parsedDivisionId!}
+          divisionName={division.name}
+        />
+      )}
+
       {/* Back Button */}
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
-        sx={{ mb: 2 }}
-      >
-        Back to Division
-      </Button>
+      <BackButton
+        to={`/admin/tournaments/${tournamentId}/divisions/${id}`}
+        label="Back to Division"
+      />
 
       {/* Header */}
       <Box

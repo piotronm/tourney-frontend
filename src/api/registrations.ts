@@ -76,3 +76,42 @@ export async function deleteRegistration(
     throw new Error(error.message);
   }
 }
+
+export interface GenerateTeamsResponse {
+  success: boolean;
+  created: number;
+  skipped: number;
+  eligible: number;
+  message: string;
+  teams: Array<{
+    id: number;
+    name: string;
+    players: Array<{
+      id: number;
+      firstName: string;
+      lastName: string;
+      duprRating: number | null;
+    }>;
+  }>;
+}
+
+export async function generateTeamsFromRegistrations(
+  tournamentId: number,
+  divisionId: number
+): Promise<GenerateTeamsResponse> {
+  const response = await fetch(
+    `${API_BASE}/tournaments/${tournamentId}/divisions/${divisionId}/generate-teams`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Failed to generate teams' }));
+    throw new Error(error.message || 'Failed to generate teams');
+  }
+
+  return response.json();
+}

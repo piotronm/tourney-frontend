@@ -22,8 +22,13 @@ export function useCreateRegistration(tournamentId: number) {
     mutationFn: (data: CreateRegistrationInput) =>
       registrationsApi.createRegistration(tournamentId, data),
     onSuccess: () => {
+      // Invalidate registrations query
       queryClient.invalidateQueries({
         queryKey: ['tournaments', tournamentId, 'registrations']
+      });
+      // Invalidate teams query (team may be auto-created)
+      queryClient.invalidateQueries({
+        queryKey: ['admin-teams', tournamentId]
       });
       toast.success('Player registered successfully');
     },
@@ -40,8 +45,13 @@ export function useDeleteRegistration(tournamentId: number) {
     mutationFn: (registrationId: number) =>
       registrationsApi.deleteRegistration(tournamentId, registrationId),
     onSuccess: () => {
+      // Invalidate registrations query
       queryClient.invalidateQueries({
         queryKey: ['tournaments', tournamentId, 'registrations']
+      });
+      // Invalidate teams query (team may be deleted with registration)
+      queryClient.invalidateQueries({
+        queryKey: ['admin-teams', tournamentId]
       });
       toast.success('Player unregistered successfully');
     },

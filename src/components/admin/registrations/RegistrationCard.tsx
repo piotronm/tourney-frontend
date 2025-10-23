@@ -5,14 +5,20 @@ import {
   Typography,
   Box,
   Chip,
-  IconButton
+  IconButton,
+  Button,
+  Stack
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
   Person as PersonIcon,
   People as PeopleIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  CheckCircle as CheckIcon,
+  Warning as WarningIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import type { Registration } from '@/types/registration';
 import { UnregisterDialog } from './UnregisterDialog';
 
@@ -23,6 +29,13 @@ interface RegistrationCardProps {
 
 export function RegistrationCard({ registration, tournamentId }: RegistrationCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleViewTeam = () => {
+    if (registration.teamId) {
+      navigate(`/tournaments/${tournamentId}/divisions/${registration.divisionId}/teams`);
+    }
+  };
 
   const getPairingIcon = () => {
     switch (registration.pairingType) {
@@ -99,6 +112,41 @@ export function RegistrationCard({ registration, tournamentId }: RegistrationCar
                   Note: {registration.notes}
                 </Typography>
               )}
+
+              {/* Team Status - Day 2: Show team creation status */}
+              <Box sx={{ mt: 1.5 }}>
+                {registration.teamId ? (
+                  /* Team Created - Success State */
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip
+                      icon={<CheckIcon />}
+                      label="Team Created"
+                      color="success"
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                    />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<VisibilityIcon />}
+                      onClick={handleViewTeam}
+                    >
+                      View Team
+                    </Button>
+                  </Stack>
+                ) : (
+                  /* No Team - Warning State */
+                  registration.pairingType === 'has_partner' && registration.status === 'registered' && (
+                    <Chip
+                      icon={<WarningIcon />}
+                      label="Team Not Created"
+                      color="warning"
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  )
+                )}
+              </Box>
 
               {/* Pairing Type Chip */}
               <Box sx={{ mt: 1 }}>

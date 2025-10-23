@@ -51,18 +51,28 @@ adminApiClient.interceptors.response.use(
  * Get paginated list of teams for a division
  * @param tournamentId - Tournament ID
  * @param params - Query parameters (divisionId, limit, offset, search, poolId)
- * @returns Paginated list of teams
+ * @returns Paginated list of teams with player rosters
  */
 export const getTeams = async (
   tournamentId: number,
   params: TeamListParams
 ): Promise<PaginatedTeams> => {
   const { divisionId, ...queryParams } = params;
-  const response = await apiClient.get<PaginatedTeams>(
+  // Use adminApiClient to get teams with player data (requires auth)
+  const response = await adminApiClient.get<{ teams: Team[]; total: number; limit: number; offset: number }>(
     `/tournaments/${tournamentId}/divisions/${divisionId}/teams`,
     { params: queryParams }
   );
-  return response.data;
+
+  // Transform backend response to match PaginatedTeams format
+  return {
+    data: response.data.teams,
+    meta: {
+      total: response.data.total,
+      limit: response.data.limit,
+      offset: response.data.offset
+    }
+  };
 };
 
 /**

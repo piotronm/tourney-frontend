@@ -91,3 +91,35 @@ export const bulkCreatePools = async (
   );
   return response.data;
 };
+
+export interface DistributeTeamsResponse {
+  success: boolean;
+  distributed: number;
+  strategy: string;
+  message: string;
+  distribution: Array<{
+    poolId: number;
+    poolName: string;
+    teamCount: number;
+    teamIds: number[];
+  }>;
+}
+
+/**
+ * Distribute unassigned teams to pools automatically
+ * @param tournamentId - Tournament ID
+ * @param divisionId - Division ID
+ * @param strategy - Distribution strategy ('balanced' or 'random')
+ * @returns Promise resolving to distribution result
+ */
+export const distributeTeams = async (
+  tournamentId: number,
+  divisionId: number,
+  strategy: 'balanced' | 'random' = 'balanced'
+): Promise<DistributeTeamsResponse> => {
+  const response = await adminApiClient.post<DistributeTeamsResponse>(
+    `/tournaments/${tournamentId}/divisions/${divisionId}/distribute-teams`,
+    { strategy }
+  );
+  return response.data;
+};

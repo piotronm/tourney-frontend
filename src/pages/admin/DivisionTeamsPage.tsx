@@ -21,10 +21,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useTeams } from '@/hooks/admin/useTeams';
 import { useDeleteTeam } from '@/hooks/admin/useDeleteTeam';
 import { useDivision } from '@/hooks/admin/useDivision';
+import { useTournament } from '@/hooks/admin/useTournament';
 import { useDebounce } from '@/hooks/useDebounce';
 import { TeamCard } from '@/components/admin/TeamCard';
 import { DeleteTeamDialog } from '@/components/admin/DeleteTeamDialog';
 import { BulkImportTeamsDialog } from '@/components/admin/BulkImportTeamsDialog';
+import { ContextBar } from '@/components/admin/ContextBar';
+import { BackButton } from '@/components/admin/BackButton';
 import { useBulkImportTeams } from '@/hooks/admin/useBulkImportTeams';
 import type { Team, BulkImportTeam } from '@/types/team';
 
@@ -59,7 +62,8 @@ export const DivisionTeamsPage = () => {
   const limit = 20;
   const offset = (page - 1) * limit;
 
-  // Fetch division info
+  // Fetch tournament and division info
+  const { data: tournament } = useTournament(parsedTournamentId);
   const { data: division, isLoading: isDivisionLoading } = useDivision(parsedTournamentId, parsedDivisionId);
 
   // Fetch teams
@@ -180,14 +184,21 @@ export const DivisionTeamsPage = () => {
         <Typography color="text.primary">Teams</Typography>
       </Breadcrumbs>
 
+      {/* Context Bar */}
+      {tournament && division && (
+        <ContextBar
+          tournamentId={parsedTournamentId!}
+          tournamentName={tournament.name}
+          divisionId={parsedDivisionId!}
+          divisionName={division.name}
+        />
+      )}
+
       {/* Back Button */}
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(`/admin/tournaments/${tournamentId}/divisions/${id}`)}
-        sx={{ mb: 2 }}
-      >
-        Back to Division
-      </Button>
+      <BackButton
+        to={`/admin/tournaments/${tournamentId}/divisions/${id}`}
+        label="Back to Division"
+      />
 
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

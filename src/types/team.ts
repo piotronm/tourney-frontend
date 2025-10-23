@@ -3,6 +3,18 @@
  * Defines all types related to tournament teams
  */
 
+// Player information within a team
+export interface TeamPlayer {
+  id: number;
+  firstName: string;
+  lastName: string;
+  duprRating: number | null;
+  position: 1 | 2;
+}
+
+// Team source tracking (Day 1: Backend Foundation)
+export type TeamSource = 'registration' | 'manual' | 'import';
+
 // Team object from backend
 export interface Team {
   id: number;
@@ -11,6 +23,13 @@ export interface Team {
   poolId: number | null;
   poolName: string | null;
   poolSeed: number | null;
+  source?: TeamSource; // Day 1: Track how team was created
+  wins: number;
+  losses: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  matchesPlayed: number;
+  players?: TeamPlayer[]; // Day 1: Player roster
   createdAt: string;
   updatedAt: string;
 }
