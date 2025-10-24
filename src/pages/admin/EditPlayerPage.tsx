@@ -68,7 +68,7 @@ export const EditPlayerPage = () => {
     <Container maxWidth="md">
       <Box sx={{ py: 3 }}>
         <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
-          Edit Player: {player.firstName} {player.lastName}
+          Edit Player: {player.name}
         </Typography>
         <PlayerForm
           key={player.id} // Force re-mount when player data changes

@@ -7,7 +7,6 @@ import {
   Button,
   TextField,
   InputAdornment,
-  Grid,
   Pagination,
   CircularProgress,
   Alert,
@@ -25,12 +24,13 @@ import SortIcon from '@mui/icons-material/Sort';
 import DeleteIcon from '@mui/icons-material/Delete';
 import UploadIcon from '@mui/icons-material/Upload';
 import { usePlayers } from '@/hooks/admin/usePlayers';
-import { useDeletePlayer } from '@/hooks/admin/usePlayers';
+import { useDeletePlayer, useDeleteAllPlayers } from '@/hooks/admin/usePlayers';
 import { useExportPlayers } from '@/hooks/admin/useExportPlayers';
 import { useBulkDeletePlayers } from '@/hooks/admin/useBulkDeletePlayers';
 import { useDebounce } from '@/hooks/useDebounce';
-import { PlayerCard } from '@/components/admin/players/PlayerCard';
+import { PlayerCompactRow } from '@/components/admin/players/PlayerCompactRow';
 import { DeletePlayerDialog } from '@/components/admin/players/DeletePlayerDialog';
+import { DeleteAllPlayersDialog } from '@/components/admin/players/DeleteAllPlayersDialog';
 import { CSVImportModal } from '@/components/admin/players/CSVImportModal';
 import type { Player } from '@/types/player';
 import {
@@ -65,6 +65,7 @@ export const PlayersListPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
   const limit = 20;
@@ -81,6 +82,7 @@ export const PlayersListPage = () => {
   const { mutate: deletePlayer, isPending: isDeleting } = useDeletePlayer();
   const { mutate: exportPlayers, isPending: isExporting } = useExportPlayers();
   const { mutate: bulkDeletePlayers, isPending: isBulkDeleting } = useBulkDeletePlayers();
+  const { mutate: deleteAllPlayers, isPending: isDeletingAll } = useDeleteAllPlayers();
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
@@ -169,6 +171,18 @@ export const PlayersListPage = () => {
     setShowBulkDeleteConfirm(false);
   };
 
+  const handleDeleteAll = () => {
+    deleteAllPlayers(undefined, {
+      onSuccess: () => {
+        // Reset to first page after deletion
+        setPage(1);
+        // Clear any selections
+        setSelectedIds(new Set());
+        setSelectionMode(false);
+      },
+    });
+  };
+
   const totalPages = data ? Math.ceil(data.meta.total / limit) : 0;
   const players = data?.data || [];
 
@@ -234,6 +248,26 @@ export const PlayersListPage = () => {
               >
                 Add Player
               </Button>
+
+              {/* Delete All Button - Development Tool */}
+              {import.meta.env.DEV && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setDeleteAllDialogOpen(true)}
+                  disabled={!data?.meta?.total || data.meta.total === 0 || isDeletingAll}
+                  sx={{
+                    borderColor: 'error.main',
+                    '&:hover': {
+                      borderColor: 'error.dark',
+                      bgcolor: 'error.light',
+                    },
+                  }}
+                >
+                  Delete All ({data?.meta?.total || 0})
+                </Button>
+              )}
             </>
           )}
         </Box>
@@ -338,39 +372,101 @@ export const PlayersListPage = () => {
         </Box>
       )}
 
-      {/* Players Grid */}
+      {/* Players List - Compact Rows */}
       {!isLoading && !isError && players.length > 0 && (
         <>
-          <Grid container spacing={3}>
+          {/* Column Headers */}
+          {!selectionMode && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 2,
+                py: 1,
+                bgcolor: 'action.hover',
+                borderRadius: 1,
+                mb: 1,
+              }}
+            >
+              <Box sx={{ width: 200, flexShrink: 0 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  PLAYER
+                </Typography>
+              </Box>
+              <Box sx={{ width: 200, flexShrink: 0 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  EMAIL
+                </Typography>
+              </Box>
+              <Box sx={{ width: 130, flexShrink: 0 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  PHONE
+                </Typography>
+              </Box>
+              <Box sx={{ width: 100, flexShrink: 0 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  DUPR ID
+                </Typography>
+              </Box>
+              <Box sx={{ width: 80, flexShrink: 0, textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  DOUBLES
+                </Typography>
+              </Box>
+              <Box sx={{ width: 80, flexShrink: 0, textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  SINGLES
+                </Typography>
+              </Box>
+              <Box sx={{ width: 80, flexShrink: 0, textAlign: 'right' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  ACTIONS
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {/* Select All Row (Selection Mode) */}
+          {selectionMode && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 2,
+                py: 1,
+                bgcolor: 'action.selected',
+                borderRadius: 1,
+                mb: 1,
+              }}
+            >
+              <Checkbox
+                checked={players.length > 0 && selectedIds.size === players.length}
+                indeterminate={selectedIds.size > 0 && selectedIds.size < players.length}
+                onChange={handleSelectAll}
+                size="small"
+                sx={{ p: 0 }}
+              />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Select all on this page ({players.length} players)
+              </Typography>
+            </Box>
+          )}
+
+          {/* Player Rows */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             {players.map((player) => (
-              <Grid item xs={12} sm={6} md={4} key={player.id}>
-                <Box sx={{ position: 'relative' }}>
-                  {selectionMode && (
-                    <Checkbox
-                      checked={selectedIds.has(player.id)}
-                      onChange={() => handleToggleSelect(player.id)}
-                      sx={{
-                        position: 'absolute',
-                        top: 8,
-                        left: 8,
-                        zIndex: 1,
-                        bgcolor: 'background.paper',
-                        borderRadius: 1,
-                        '&:hover': {
-                          bgcolor: 'background.paper',
-                        },
-                      }}
-                    />
-                  )}
-                  <PlayerCard
-                    player={player}
-                    onEdit={handleEditClick}
-                    onDelete={handleDeleteClick}
-                  />
-                </Box>
-              </Grid>
+              <PlayerCompactRow
+                key={player.id}
+                player={player}
+                onDelete={handleDeleteClick}
+                selectionMode={selectionMode}
+                isSelected={selectedIds.has(player.id)}
+                onToggleSelect={handleToggleSelect}
+              />
             ))}
-          </Grid>
+          </Box>
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -427,6 +523,14 @@ export const PlayersListPage = () => {
       <CSVImportModal
         open={importModalOpen}
         onClose={() => setImportModalOpen(false)}
+      />
+
+      {/* Delete All Players Dialog */}
+      <DeleteAllPlayersDialog
+        open={deleteAllDialogOpen}
+        onClose={() => setDeleteAllDialogOpen(false)}
+        onConfirm={handleDeleteAll}
+        totalPlayers={data?.meta?.total || 0}
       />
     </Container>
   );

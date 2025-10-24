@@ -1,7 +1,8 @@
 import type {
   Registration,
   RegistrationsResponse,
-  CreateRegistrationInput
+  CreateRegistrationInput,
+  AddDivisionsInput
 } from '@/types/registration';
 
 // Admin API endpoint - registrations require authentication
@@ -93,6 +94,48 @@ export interface GenerateTeamsResponse {
       duprRating: number | null;
     }>;
   }>;
+}
+
+export async function addPlayerToDivisions(
+  tournamentId: number,
+  playerId: number,
+  data: AddDivisionsInput
+): Promise<{ success: boolean; message: string; divisionsAdded: number }> {
+  const response = await fetch(
+    `${API_BASE}/tournaments/${tournamentId}/players/${playerId}/divisions`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: 'include'
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Failed to add divisions' }));
+    throw new Error(error.message);
+  }
+
+  return response.json();
+}
+
+export async function removePlayerFromDivision(
+  tournamentId: number,
+  playerId: number,
+  divisionId: number
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE}/tournaments/${tournamentId}/players/${playerId}/divisions/${divisionId}`,
+    {
+      method: 'DELETE',
+      credentials: 'include'
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Failed to remove division' }));
+    throw new Error(error.message);
+  }
 }
 
 export async function generateTeamsFromRegistrations(

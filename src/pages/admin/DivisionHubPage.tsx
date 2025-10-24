@@ -20,6 +20,7 @@ import {
   Leaderboard,
   Settings as SettingsIcon,
   ArrowForward,
+  People,
 } from '@mui/icons-material';
 import { useDivision } from '@/hooks/admin/useDivision';
 import { StatusBadge, getTournamentStatus } from '@/components/ui/StatusBadge';
@@ -184,6 +185,14 @@ export function DivisionHubPage() {
 
       {/* Quick Stats */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Players"
+            value={division.stats?.registeredPlayers || 0}
+            icon={<People sx={{ fontSize: 48 }} />}
+            color="info.main"
+          />
+        </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Teams"

@@ -78,7 +78,7 @@ export const DivisionCard: FC<DivisionCardProps> = ({
               <StatusBadge status={status} />
             </Box>
             <Typography variant="body2" color="text.secondary">
-              {division.stats.teams} teams • {division.stats.pools} pools •{' '}
+              {division.stats.registeredPlayers || 0} players • {division.stats.teams} teams • {division.stats.pools} pools •{' '}
               {division.stats.matches} matches
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>

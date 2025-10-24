@@ -9,30 +9,30 @@ export interface PlayerSummary {
   duprRating: number | null;
 }
 
-export interface Registration {
-  id: number;
-  tournamentId: number;
+export interface DivisionAssignment {
   divisionId: number;
-  divisionName: string | null;
-  player: PlayerSummary;
-  partner: PlayerSummary | null;
-  pairingType: PairingType;
+  divisionName: string;
+  assignedAt: string;
+  teamId: number | null;
+  teamName: string | null;
+}
+
+export interface Registration {
+  registrationId: number;
+  playerId: number;
+  playerName: string;
+  playerEmail: string | null;
+  playerDuprId: string | null;
+  playerDuprRating: number | null;
   status: RegistrationStatus;
   notes: string | null;
-  teamId: number | null; // Day 1: Link to auto-created team
   registeredAt: string;
-  createdAt: string;
-  updatedAt: string;
+  divisions: DivisionAssignment[];
 }
 
 export interface RegistrationStats {
   total: number;
-  byDivision: Record<string, number>;
-  byPairingType: {
-    has_partner: number;
-    needs_partner: number;
-    solo: number;
-  };
+  totalDivisionAssignments: number;
 }
 
 export interface RegistrationsResponse {
@@ -42,8 +42,10 @@ export interface RegistrationsResponse {
 
 export interface CreateRegistrationInput {
   playerId: number;
-  divisionId: number;
-  partnerId?: number;
-  pairingType: PairingType;
+  divisionIds: number[];
   notes?: string;
+}
+
+export interface AddDivisionsInput {
+  divisionIds: number[];
 }

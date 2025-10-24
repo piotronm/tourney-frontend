@@ -27,13 +27,16 @@ interface PlayerFormProps {
  * Player form component
  * Used for both creating and editing players
  *
+ * Migration note (2025-10-23): Updated to use single name field and separate ratings
+ *
  * Features:
  * - React Hook Form with Zod validation
  * - Real-time validation errors
  * - Email field disabled in edit mode
  * - Disabled state during submission
  * - Cancel button
- * - 2-column layout for name fields
+ * - Single name field (not firstName/lastName)
+ * - Separate singles and doubles rating fields
  */
 export const PlayerForm: FC<PlayerFormProps> = ({
   mode,
@@ -50,12 +53,12 @@ export const PlayerForm: FC<PlayerFormProps> = ({
   } = useForm<PlayerFormData>({
     resolver: zodResolver(playerSchema),
     defaultValues: {
+      name: '',
       email: '',
-      firstName: '',
-      lastName: '',
       phone: '',
       duprId: '',
-      duprRating: undefined,
+      singlesRating: undefined,
+      doublesRating: undefined,
     },
   });
 
@@ -63,12 +66,12 @@ export const PlayerForm: FC<PlayerFormProps> = ({
   useEffect(() => {
     if (defaultValues) {
       reset({
+        name: defaultValues.name || '',
         email: defaultValues.email || '',
-        firstName: defaultValues.firstName || '',
-        lastName: defaultValues.lastName || '',
         phone: defaultValues.phone || '',
         duprId: defaultValues.duprId || '',
-        duprRating: defaultValues.duprRating || undefined,
+        singlesRating: defaultValues.singlesRating || undefined,
+        doublesRating: defaultValues.doublesRating || undefined,
       });
     }
   }, [defaultValues, reset]);
@@ -82,47 +85,31 @@ export const PlayerForm: FC<PlayerFormProps> = ({
           </Typography>
 
           <Box sx={{ mt: 3 }}>
+            {/* Full Name Field */}
+            <TextField
+              {...register('name')}
+              label="Full Name"
+              fullWidth
+              required
+              autoFocus={mode === 'create'}
+              error={!!errors.name}
+              helperText={errors.name?.message}
+              disabled={isSubmitting}
+              placeholder="John Smith"
+              sx={{ mb: 2 }}
+            />
+
             {/* Email Field */}
             <TextField
               {...register('email')}
               label="Email"
               fullWidth
-              autoFocus={mode === 'create'}
               error={!!errors.email}
               helperText={errors.email?.message || 'Optional - can be added later'}
               disabled={isSubmitting || mode === 'edit'} // Email cannot be changed in edit mode
               placeholder="player@example.com"
               sx={{ mb: 2 }}
             />
-
-            {/* First Name & Last Name */}
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  {...register('firstName')}
-                  label="First Name"
-                  fullWidth
-                  required
-                  autoFocus={mode === 'edit'}
-                  error={!!errors.firstName}
-                  helperText={errors.firstName?.message}
-                  disabled={isSubmitting}
-                  placeholder="John"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  {...register('lastName')}
-                  label="Last Name"
-                  fullWidth
-                  required
-                  error={!!errors.lastName}
-                  helperText={errors.lastName?.message}
-                  disabled={isSubmitting}
-                  placeholder="Doe"
-                />
-              </Grid>
-            </Grid>
 
             {/* Phone Field */}
             <TextField
@@ -136,33 +123,51 @@ export const PlayerForm: FC<PlayerFormProps> = ({
               sx={{ mb: 2 }}
             />
 
-            {/* DUPR ID & Rating */}
+            {/* DUPR ID */}
+            <TextField
+              {...register('duprId')}
+              label="DUPR ID"
+              fullWidth
+              error={!!errors.duprId}
+              helperText={errors.duprId?.message || '6 characters (letters and numbers, optional)'}
+              disabled={isSubmitting}
+              placeholder="76NWX4"
+              inputProps={{
+                maxLength: 6,
+                style: { textTransform: 'uppercase' },
+              }}
+              sx={{ mb: 2 }}
+            />
+
+            {/* DUPR Ratings */}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  {...register('duprId')}
-                  label="DUPR ID"
+                  {...register('doublesRating')}
+                  label="Doubles Rating"
+                  type="number"
                   fullWidth
-                  error={!!errors.duprId}
-                  helperText={errors.duprId?.message || '6 characters (letters and numbers, optional)'}
+                  error={!!errors.doublesRating}
+                  helperText={errors.doublesRating?.message || '1.0 - 7.0 (optional)'}
                   disabled={isSubmitting}
-                  placeholder="76NWX4"
+                  placeholder="4.5"
                   inputProps={{
-                    maxLength: 6,
-                    style: { textTransform: 'uppercase' },
+                    step: '0.01',
+                    min: '1.0',
+                    max: '7.0',
                   }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  {...register('duprRating')}
-                  label="DUPR Rating"
+                  {...register('singlesRating')}
+                  label="Singles Rating"
                   type="number"
                   fullWidth
-                  error={!!errors.duprRating}
-                  helperText={errors.duprRating?.message || '1.0 - 7.0'}
+                  error={!!errors.singlesRating}
+                  helperText={errors.singlesRating?.message || '1.0 - 7.0 (optional)'}
                   disabled={isSubmitting}
-                  placeholder="4.5"
+                  placeholder="4.2"
                   inputProps={{
                     step: '0.01',
                     min: '1.0',

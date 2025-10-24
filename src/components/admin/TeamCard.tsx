@@ -12,13 +12,13 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import PersonIcon from '@mui/icons-material/Person';
 import WarningIcon from '@mui/icons-material/Warning';
 import type { Team } from '@/types/team';
+import { getInitials, formatDuprRating } from '@/utils/formatters';
 
 interface TeamCardProps {
   team: Team;
-  onEdit?: () => void;
+  onEdit?: (team: Team) => void;
   onDelete?: () => void;
   showActions?: boolean;
 }
@@ -26,6 +26,8 @@ interface TeamCardProps {
 /**
  * Team card component
  * Displays team summary with player roster and action buttons
+ *
+ * Migration note (2025-10-23): Updated to use single name field and separate ratings
  *
  * Features (Day 2 Enhanced):
  * - Shows team name and source badge
@@ -103,17 +105,22 @@ export const TeamCard: FC<TeamCardProps> = ({
                     fontSize: '0.875rem'
                   }}
                 >
-                  {player.firstName?.[0] || '?'}{player.lastName?.[0] || '?'}
+                  {getInitials(player.name)}
                 </Avatar>
 
                 {/* Player Info */}
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {player.firstName} {player.lastName}
+                    {player.name}
                   </Typography>
-                  {player.duprRating !== null && (
+                  {player.doublesRating !== null && (
                     <Typography variant="caption" color="text.secondary">
-                      DUPR: {player.duprRating.toFixed(2)}
+                      Doubles: {formatDuprRating(player.doublesRating)}
+                    </Typography>
+                  )}
+                  {player.singlesRating !== null && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      Singles: {formatDuprRating(player.singlesRating)}
                     </Typography>
                   )}
                 </Box>
@@ -214,8 +221,8 @@ export const TeamCard: FC<TeamCardProps> = ({
             {onEdit && (
               <IconButton
                 size="small"
-                onClick={onEdit}
-                title="Edit team"
+                onClick={() => onEdit(team)}
+                title="Edit team roster"
                 sx={{
                   bgcolor: 'primary.lighter',
                   '&:hover': { bgcolor: 'primary.light' }

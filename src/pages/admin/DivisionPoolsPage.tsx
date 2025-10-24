@@ -29,6 +29,11 @@ import {
   Radio,
   FormLabel,
   CircularProgress,
+  LinearProgress,
+  Avatar,
+  Grid,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -41,14 +46,21 @@ import {
   AutoAwesome as AutoAwesomeIcon,
   Shuffle as ShuffleIcon,
   Info as InfoIcon,
+  Groups as GroupsIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
 } from '@mui/icons-material';
 import { usePools } from '@/hooks/admin/usePools';
 import { useDeletePool } from '@/hooks/admin/useDeletePool';
 import { useBulkCreatePools } from '@/hooks/admin/useBulkCreatePools';
 import { useBulkDeletePools } from '@/hooks/admin/useBulkDeletePools';
+import { useUpdatePool } from '@/hooks/admin/useUpdatePool';
 import { useDivision } from '@/hooks/admin/useDivision';
 import { useTournament } from '@/hooks/admin/useTournament';
 import { useTeams } from '@/hooks/admin/useTeams';
+import { useUpdateTeam } from '@/hooks/admin/useUpdateTeam';
 import { useDistributeTeams } from '@/hooks/admin/useDistributeTeams';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
@@ -60,7 +72,10 @@ import { GenerateMatchesDialog } from '@/components/admin/GenerateMatchesDialog'
 import { BulkDeletePoolsDialog } from '@/components/admin/BulkDeletePoolsDialog';
 import { ContextBar } from '@/components/admin/ContextBar';
 import { BackButton } from '@/components/admin/BackButton';
+import { TeamAssignmentSidebar, getPoolColor } from '@/components/admin/pools/TeamAssignmentSidebar';
 import type { Pool } from '@/types/pool';
+import type { Team } from '@/types/team';
+import { getCombinedDupr, formatDuprRating } from '@/utils/formatters';
 
 /**
  * Division Pools Page
@@ -96,6 +111,8 @@ export const DivisionPoolsPage = () => {
   const { mutate: deletePool, isPending: isDeleting } = useDeletePool(parsedDivisionId!);
   const { mutate: bulkCreatePools, isPending: isCreatingBulk } = useBulkCreatePools();
   const { mutate: bulkDeletePools, isPending: isDeletingBulk } = useBulkDeletePools(parsedDivisionId!);
+  const { mutate: updatePool } = useUpdatePool(parsedDivisionId!);
+  const updateTeamMutation = useUpdateTeam();
 
   // Distribution state
   const [distributeDialogOpen, setDistributeDialogOpen] = useState(false);
@@ -131,15 +148,46 @@ export const DivisionPoolsPage = () => {
     return pools?.sort((a, b) => a.orderIndex - b.orderIndex) || [];
   }, [pools]);
 
+  // Calculate team assignment statistics
+  const teamStats = useMemo(() => {
+    const teams = teamsData?.data || [];
+    const totalTeams = teams.length;
+    const assignedTeams = teams.filter(team => team.poolId !== null).length;
+    const unassignedTeams = totalTeams - assignedTeams;
+
+    return {
+      total: totalTeams,
+      assigned: assignedTeams,
+      unassigned: unassignedTeams,
+    };
+  }, [teamsData]);
+
+  // Helper function to sort teams by combined DUPR
+  const getSortedTeams = (teams: Team[] | undefined) => {
+    if (!teams || teams.length === 0) {
+      return [];
+    }
+
+    return [...teams].sort((a, b) => {
+      // Get combined DUPR for each team
+      const duprA = a.players && a.players.length > 0
+        ? getCombinedDupr(a.players)
+        : null;
+      const duprB = b.players && b.players.length > 0
+        ? getCombinedDupr(b.players)
+        : null;
+
+      // Handle null ratings - teams without ratings go to bottom
+      if (duprA === null && duprB === null) return 0;
+      if (duprA === null) return 1;  // A goes after B
+      if (duprB === null) return -1; // B goes after A
+
+      // Both have ratings, sort descending (highest first)
+      return duprB - duprA;
+    });
+  };
+
   // ========== LOGIC SECTION (AFTER ALL HOOKS) ==========
-  // DEBUG: Auto-Distribute button visibility
-  console.log('=== AUTO-DISTRIBUTE DEBUG ===');
-  console.log('poolCount:', poolCount);
-  console.log('unassignedTeamsCount:', unassignedTeamsCount);
-  console.log('teamsData:', teamsData);
-  console.log('pools:', pools);
-  console.log('Button should show?', poolCount > 0 && unassignedTeamsCount > 0);
-  console.log('============================');
   // Loading state
   if (divisionLoading || poolsLoading) {
     return <Loading />;
@@ -269,8 +317,71 @@ export const DivisionPoolsPage = () => {
 
   const selectedPools = pools?.filter(p => selectedPoolIds.has(p.id)) || [];
 
+  // Reorder handlers
+  const handleMoveUp = (pool: Pool, index: number) => {
+    if (index === 0) return; // Already at top
+
+    const prevPool = sortedPools[index - 1];
+
+    // Swap orderIndex values - must include name and label per backend schema
+    updatePool({
+      poolId: pool.id,
+      data: {
+        name: pool.name,
+        label: pool.label,
+        orderIndex: prevPool.orderIndex
+      }
+    });
+    updatePool({
+      poolId: prevPool.id,
+      data: {
+        name: prevPool.name,
+        label: prevPool.label,
+        orderIndex: pool.orderIndex
+      }
+    });
+  };
+
+  const handleMoveDown = (pool: Pool, index: number) => {
+    if (index === sortedPools.length - 1) return; // Already at bottom
+
+    const nextPool = sortedPools[index + 1];
+
+    // Swap orderIndex values - must include name and label per backend schema
+    updatePool({
+      poolId: pool.id,
+      data: {
+        name: pool.name,
+        label: pool.label,
+        orderIndex: nextPool.orderIndex
+      }
+    });
+    updatePool({
+      poolId: nextPool.id,
+      data: {
+        name: nextPool.name,
+        label: nextPool.label,
+        orderIndex: pool.orderIndex
+      }
+    });
+  };
+
+  // Handle assigning team to pool
+  const handleAssignTeam = (teamId: number, poolId: number | null) => {
+    if (!parsedTournamentId || !parsedDivisionId) return;
+
+    updateTeamMutation.mutate({
+      tournamentId: parsedTournamentId,
+      divisionId: parsedDivisionId,
+      teamId,
+      data: {
+        poolId,
+      },
+    });
+  };
+
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link
@@ -405,6 +516,132 @@ export const DivisionPoolsPage = () => {
         </Box>
       </Box>
 
+      {/* Sidebar + Main Content Layout */}
+      <Box sx={{ display: 'flex', gap: 3, minHeight: '80vh' }}>
+        {/* LEFT SIDEBAR - Teams List */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: 320,
+            flexShrink: 0,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: 'calc(100vh - 200px)',
+            position: 'sticky',
+            top: 100,
+          }}
+        >
+          <TeamAssignmentSidebar
+            teams={teamsData?.data || []}
+            pools={pools || []}
+            onAssignTeam={handleAssignTeam}
+            isLoading={updateTeamMutation.isPending}
+          />
+        </Paper>
+
+        {/* MAIN CONTENT - Pools */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {/* Team Assignment Statistics */}
+      <Box sx={{ mb: 3 }}>
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            Team Assignment Overview
+          </Typography>
+
+          <Grid container spacing={3} sx={{ mt: 0.5 }}>
+            {/* Total Registered */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
+                  <GroupsIcon sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h5" sx={{ lineHeight: 1.2, fontWeight: 600 }}>
+                    {teamStats.total}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Total Teams
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+
+            {/* Assigned */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Avatar sx={{ bgcolor: 'success.main', width: 40, height: 40 }}>
+                  <CheckCircleIcon sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h5" sx={{ lineHeight: 1.2, fontWeight: 600 }}>
+                    {teamStats.assigned}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Assigned
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+
+            {/* Unassigned */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Avatar
+                  sx={{
+                    bgcolor: teamStats.unassigned > 0 ? 'warning.main' : 'action.disabledBackground',
+                    width: 40,
+                    height: 40
+                  }}
+                >
+                  <WarningIcon sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h5" sx={{ lineHeight: 1.2, fontWeight: 600 }}>
+                    {teamStats.unassigned}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Unassigned
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+
+            {/* Assignment Progress */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Progress
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      {teamStats.total > 0
+                        ? Math.round((teamStats.assigned / teamStats.total) * 100)
+                        : 0}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={teamStats.total > 0 ? (teamStats.assigned / teamStats.total) * 100 : 0}
+                    sx={{
+                      height: 8,
+                      borderRadius: 4,
+                      bgcolor: 'action.hover',
+                      '& .MuiLinearProgress-bar': {
+                        bgcolor: teamStats.assigned === teamStats.total ? 'success.main' : 'primary.main',
+                      },
+                    }}
+                  />
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
+      </Box>
+
       {/* Selection toolbar - shows when pools are selected */}
       {selectionMode && selectedPoolIds.size > 0 && (
         <Paper elevation={2} sx={{ mb: 2 }}>
@@ -426,18 +663,38 @@ export const DivisionPoolsPage = () => {
       )}
 
       {/* Info Alerts */}
-      {unassignedTeamsCount > 0 && poolCount > 0 && (
-        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 3 }}>
-          <AlertTitle>Unassigned Teams</AlertTitle>
-          {unassignedTeamsCount} team{unassignedTeamsCount !== 1 ? 's are' : ' is'} not
-          assigned to any pool. Use "Auto-Distribute" to assign them automatically.
+      {/* Warning when teams are unassigned */}
+      {teamStats.unassigned > 0 && poolCount > 0 && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            <strong>{teamStats.unassigned} team{teamStats.unassigned !== 1 ? 's' : ''}</strong>
+            {' '}not assigned to any pool.
+            {poolCount > 0 ? (
+              <> Use the "Auto-Distribute Teams" button to organize teams into pools automatically.</>
+            ) : (
+              <> Create pools first, then assign teams.</>
+            )}
+          </Typography>
         </Alert>
       )}
 
-      {poolCount === 0 && teamsData && teamsData.length > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <AlertTitle>No Pools Created</AlertTitle>
-          Create pools first before distributing teams.
+      {/* Info when no teams exist */}
+      {teamStats.total === 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            No teams registered in this division yet.
+            Teams must be created before they can be assigned to pools.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Warning when pools don't exist but teams do */}
+      {poolCount === 0 && teamStats.total > 0 && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            {teamStats.total} team{teamStats.total !== 1 ? 's are' : ' is'} waiting to be assigned.
+            Create pools first before distributing teams.
+          </Typography>
         </Alert>
       )}
 
@@ -461,52 +718,196 @@ export const DivisionPoolsPage = () => {
       {/* Pools List */}
       {sortedPools.length > 0 && (
         <Stack spacing={2}>
-          {sortedPools.map((pool) => {
+          {sortedPools.map((pool, index) => {
             const teamCount = pool.teams?.length || 0;
+            const isFirst = index === 0;
+            const isLast = index === sortedPools.length - 1;
+
+            // Sort teams by combined DUPR (highest to lowest)
+            const sortedTeams = getSortedTeams(pool.teams);
+
+            // Get pool color for consistent theming
+            const poolColor = getPoolColor(pool.id, sortedPools);
 
             return (
-              <Accordion key={pool.id} defaultExpanded>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                    {selectionMode && (
-                      <Checkbox
-                        checked={selectedPoolIds.has(pool.id)}
-                        onChange={() => togglePoolSelection(pool.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        sx={{ mr: 1 }}
-                      />
-                    )}
-                    <Chip label={pool.label} color="primary" />
-                    <Typography variant="h6">{pool.name}</Typography>
-                    <Chip
-                      icon={<PeopleIcon />}
-                      label={`${teamCount} team${teamCount !== 1 ? 's' : ''}`}
-                      size="small"
-                      sx={{ ml: 'auto', mr: 2 }}
-                    />
+              <Box key={pool.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                {/* Reorder Arrows - Outside accordion to avoid nested buttons */}
+                {!selectionMode && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pt: 1 }}>
+                    <Tooltip title={isFirst ? 'Already at top' : 'Move up'}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleMoveUp(pool, index)}
+                          disabled={isFirst}
+                          sx={{ width: 32, height: 32 }}
+                        >
+                          <ArrowUpwardIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title={isLast ? 'Already at bottom' : 'Move down'}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleMoveDown(pool, index)}
+                          disabled={isLast}
+                          sx={{ width: 32, height: 32 }}
+                        >
+                          <ArrowDownwardIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </Box>
-                </AccordionSummary>
+                )}
+
+                <Accordion defaultExpanded sx={{ flex: 1 }}>
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{
+                      bgcolor: `${poolColor}.main`,
+                      color: 'white',
+                      '&:hover': {
+                        bgcolor: `${poolColor}.dark`,
+                      },
+                      '& .MuiAccordionSummary-expandIconWrapper': {
+                        color: 'white',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                      {selectionMode && (
+                        <Checkbox
+                          checked={selectedPoolIds.has(pool.id)}
+                          onChange={() => togglePoolSelection(pool.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            mr: 1,
+                            color: 'white',
+                            '&.Mui-checked': {
+                              color: 'white',
+                            },
+                          }}
+                        />
+                      )}
+
+                      <Chip
+                        label={pool.label}
+                        sx={{
+                          bgcolor: 'white',
+                          color: `${poolColor}.main`,
+                          fontWeight: 600,
+                        }}
+                      />
+                      <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                        {pool.name}
+                      </Typography>
+                      <Chip
+                        icon={<PeopleIcon sx={{ color: 'white !important' }} />}
+                        label={`${teamCount} team${teamCount !== 1 ? 's' : ''}`}
+                        size="small"
+                        sx={{
+                          ml: 'auto',
+                          mr: 2,
+                          bgcolor: 'rgba(255, 255, 255, 0.2)',
+                          color: 'white',
+                          fontWeight: 500,
+                        }}
+                      />
+                    </Box>
+                  </AccordionSummary>
 
                 <AccordionDetails>
                   {/* Teams in Pool */}
                   {teamCount > 0 ? (
-                    <Stack spacing={1} sx={{ mb: 2 }}>
-                      {pool.teams!.map((team, index) => (
-                        <Box
-                          key={team.id}
+                    <>
+                      {/* Header with sort indicator */}
+                      <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mb: 1,
+                      }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Teams ({teamCount})
+                        </Typography>
+                        <Chip
+                          label="Sorted by DUPR"
+                          size="small"
+                          variant="outlined"
                           sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            p: 1,
-                            bgcolor: 'background.default',
-                            borderRadius: 1,
+                            height: 20,
+                            fontSize: '0.7rem',
                           }}
-                        >
-                          <Chip label={`Seed ${index + 1}`} size="small" sx={{ mr: 2 }} />
-                          <Typography>{team.name}</Typography>
-                        </Box>
-                      ))}
-                    </Stack>
+                        />
+                      </Box>
+
+                      <Stack spacing={1} sx={{ mb: 2 }}>
+                        {sortedTeams.map((team, teamIndex) => {
+                          const combinedDupr = team.players && team.players.length > 0
+                            ? getCombinedDupr(team.players)
+                            : null;
+
+                          return (
+                            <Box
+                              key={team.id}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                p: 1,
+                                bgcolor: 'background.default',
+                                borderRadius: 1,
+                              }}
+                            >
+                              {/* Rank Badge */}
+                              <Chip
+                                label={`#${teamIndex + 1}`}
+                                size="small"
+                                color={teamIndex === 0 ? 'primary' : 'default'}
+                                sx={{
+                                  width: 36,
+                                  height: 24,
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                }}
+                              />
+
+                              {/* Team Name */}
+                              <Typography variant="body2" sx={{ flex: 1, fontWeight: 500 }}>
+                                {team.name}
+                              </Typography>
+
+                              {/* Combined DUPR */}
+                              {combinedDupr !== null ? (
+                                <Chip
+                                  label={`DUPR: ${combinedDupr.toFixed(2)}`}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                  sx={{
+                                    height: 24,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                  }}
+                                />
+                              ) : (
+                                <Chip
+                                  label="No rating"
+                                  size="small"
+                                  color="warning"
+                                  variant="outlined"
+                                  sx={{
+                                    height: 24,
+                                    fontSize: '0.7rem',
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+                    </>
                   ) : (
                     <Alert severity="info" sx={{ mb: 2 }}>
                       No teams assigned to this pool yet.{' '}
@@ -540,6 +941,7 @@ export const DivisionPoolsPage = () => {
                   </Box>
                 </AccordionDetails>
               </Accordion>
+              </Box>
             );
           })}
         </Stack>
@@ -685,6 +1087,8 @@ export const DivisionPoolsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+        </Box>
+      </Box>
     </Container>
   );
 };

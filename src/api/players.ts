@@ -107,3 +107,12 @@ export const deleteBulkPlayers = async (ids: number[]): Promise<{ deleted: numbe
   const response = await adminApiClient.post<{ deleted: number; failed: number }>('/players/bulk-delete', { ids });
   return response.data;
 };
+
+/**
+ * Delete all players (development only)
+ * WARNING: This permanently deletes ALL players from the database
+ */
+export const deleteAllPlayers = async (): Promise<{ success: boolean; message: string; deletedCount: number }> => {
+  const response = await adminApiClient.delete<{ success: boolean; message: string; deletedCount: number }>('/players');
+  return response.data;
+};

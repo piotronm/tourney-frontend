@@ -3,15 +3,24 @@ import { z } from 'zod';
 /**
  * Player form validation schema
  *
+ * Migration note (2025-10-23): Updated to use single name field and separate ratings
+ *
  * Rules:
+ * - Name: Required, 1-200 characters (full name)
  * - Email: Optional, valid email format if provided
- * - First Name: Required, 1-100 characters
- * - Last Name: Required, 1-100 characters
  * - Phone: Optional, max 20 characters
  * - DUPR ID: Optional, 6 alphanumeric characters (auto-uppercase)
- * - DUPR Rating: Optional, 1.0-7.0
+ * - Singles Rating: Optional, 1.0-7.0
+ * - Doubles Rating: Optional, 1.0-7.0
  */
 export const playerSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(200, 'Name must not exceed 200 characters')
+    .trim()
+    .transform((val) => val.replace(/\s+/g, ' ')), // Normalize whitespace
+
   email: z
     .string()
     .transform(val => val.trim() || undefined)
@@ -22,20 +31,6 @@ export const playerSchema = z.object({
     .refine(val => !val || val.length <= 255, {
       message: 'Email must not exceed 255 characters'
     }),
-
-  firstName: z
-    .string()
-    .min(1, 'First name is required')
-    .max(100, 'First name must not exceed 100 characters')
-    .trim()
-    .transform((val) => val.replace(/\s+/g, ' ')), // Normalize whitespace
-
-  lastName: z
-    .string()
-    .min(1, 'Last name is required')
-    .max(100, 'Last name must not exceed 100 characters')
-    .trim()
-    .transform((val) => val.replace(/\s+/g, ' ')), // Normalize whitespace
 
   phone: z
     .string()
@@ -54,7 +49,7 @@ export const playerSchema = z.object({
       message: 'DUPR ID must be 6 alphanumeric characters'
     }),
 
-  duprRating: z
+  singlesRating: z
     .union([
       z.number(),
       z.string().transform(val => val === '' ? undefined : parseFloat(val)),
@@ -62,7 +57,18 @@ export const playerSchema = z.object({
     ])
     .optional()
     .refine(val => val === undefined || (val >= 1.0 && val <= 7.0), {
-      message: 'DUPR rating must be between 1.0 and 7.0'
+      message: 'Singles rating must be between 1.0 and 7.0'
+    }),
+
+  doublesRating: z
+    .union([
+      z.number(),
+      z.string().transform(val => val === '' ? undefined : parseFloat(val)),
+      z.undefined()
+    ])
+    .optional()
+    .refine(val => val === undefined || (val >= 1.0 && val <= 7.0), {
+      message: 'Doubles rating must be between 1.0 and 7.0'
     }),
 });
 

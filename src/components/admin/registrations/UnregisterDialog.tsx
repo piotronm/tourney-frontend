@@ -40,7 +40,7 @@ export function UnregisterDialog({
         <Typography gutterBottom>
           Are you sure you want to unregister{' '}
           <strong>
-            {registration.player.firstName} {registration.player.lastName}
+            {registration.player.name}
           </strong>{' '}
           from <strong>{registration.divisionName}</strong>?
         </Typography>
@@ -49,7 +49,7 @@ export function UnregisterDialog({
           <Alert severity="warning" sx={{ mt: 2 }}>
             This player is registered with{' '}
             <strong>
-              {registration.partner!.firstName} {registration.partner!.lastName}
+              {registration.partner!.name}
             </strong>
             . Their partner will be automatically updated to "Needs Partner" status.
           </Alert>

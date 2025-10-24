@@ -56,7 +56,7 @@ export const DeletePlayerDialog: FC<DeletePlayerDialogProps> = ({
       <DialogContent>
         <Typography gutterBottom>
           Are you sure you want to delete{' '}
-          <strong>{player.firstName} {player.lastName}</strong>?
+          <strong>{player.name}</strong>?
         </Typography>
 
         <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mt: 1 }}>

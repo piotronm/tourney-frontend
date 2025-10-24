@@ -8,6 +8,7 @@ import {
   Chip,
   Divider,
   Stack,
+  Avatar,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -17,6 +18,7 @@ import StarIcon from '@mui/icons-material/Star';
 import BadgeIcon from '@mui/icons-material/Badge';
 import WarningIcon from '@mui/icons-material/Warning';
 import type { Player } from '@/types/player';
+import { getInitials, formatDuprRating, formatPhoneNumber } from '@/utils/formatters';
 
 interface PlayerCardProps {
   player: Player;
@@ -25,17 +27,20 @@ interface PlayerCardProps {
 }
 
 /**
- * Player card component - Redesigned
+ * Player card component - Updated for new schema
  * Displays ALL player information with consistent layout
  *
  * Features:
- * - Always shows all fields (even if missing)
+ * - Shows full name with avatar initials
+ * - Displays separate singles and doubles ratings
  * - "Not provided" for missing data
  * - Incomplete profile indicator
  * - Consistent card height
  * - Better visual hierarchy with dividers
  * - Edit and Delete buttons
  * - Hover effect
+ *
+ * Migration note (2025-10-23): Updated to use single name field and separate ratings
  */
 export const PlayerCard: FC<PlayerCardProps> = ({
   player,
@@ -44,7 +49,7 @@ export const PlayerCard: FC<PlayerCardProps> = ({
 }) => {
   // Check if profile is incomplete (missing key information)
   // Phone is truly optional and doesn't affect incomplete status
-  const isIncomplete = !player.email || !player.duprId || !player.duprRating;
+  const isIncomplete = !player.email || !player.duprId || (!player.singlesRating && !player.doublesRating);
 
   // Format created date safely
   const formattedDate = (() => {
@@ -72,9 +77,12 @@ export const PlayerCard: FC<PlayerCardProps> = ({
       }}
     >
       <CardContent sx={{ flexGrow: 1 }}>
-        {/* Header: Name + Actions */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+        {/* Header: Avatar + Name + Actions */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1, gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
+            <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
+              {getInitials(player.name)}
+            </Avatar>
             <Typography
               variant="h6"
               component="h2"
@@ -83,7 +91,7 @@ export const PlayerCard: FC<PlayerCardProps> = ({
                 overflowWrap: 'break-word'
               }}
             >
-              {player.firstName} {player.lastName}
+              {player.name}
             </Typography>
           </Box>
 
@@ -146,7 +154,7 @@ export const PlayerCard: FC<PlayerCardProps> = ({
             <Typography variant="body2" sx={{ flex: 1 }}>
               <strong>Phone:</strong>{' '}
               {player.phone ? (
-                <span>{player.phone}</span>
+                <span>{formatPhoneNumber(player.phone)}</span>
               ) : (
                 <span style={{ color: 'text.secondary', fontStyle: 'italic' }}>Not provided</span>
               )}
@@ -172,16 +180,16 @@ export const PlayerCard: FC<PlayerCardProps> = ({
             </Box>
           </Box>
 
-          {/* DUPR Rating */}
+          {/* Doubles Rating */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <StarIcon fontSize="small" color="action" />
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" component="span">
-                <strong>DUPR Rating:</strong>
+                <strong>Doubles Rating:</strong>
               </Typography>
-              {player.duprRating ? (
+              {player.doublesRating ? (
                 <Chip
-                  label={player.duprRating.toFixed(2)}
+                  label={formatDuprRating(player.doublesRating)}
                   size="small"
                   color="primary"
                   icon={<StarIcon />}
@@ -193,6 +201,24 @@ export const PlayerCard: FC<PlayerCardProps> = ({
               )}
             </Box>
           </Box>
+
+          {/* Singles Rating */}
+          {player.singlesRating && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <StarIcon fontSize="small" color="action" />
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" component="span">
+                  <strong>Singles Rating:</strong>
+                </Typography>
+                <Chip
+                  label={formatDuprRating(player.singlesRating)}
+                  size="small"
+                  color="secondary"
+                  icon={<StarIcon />}
+                />
+              </Box>
+            </Box>
+          )}
         </Stack>
 
         {/* Footer: Created Date */}

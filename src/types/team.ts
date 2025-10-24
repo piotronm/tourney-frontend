@@ -3,13 +3,34 @@
  * Defines all types related to tournament teams
  */
 
-// Player information within a team
+/**
+ * Player as part of a team roster
+ *
+ * Migration note (2025-10-23): Updated to use single name field and separate ratings.
+ */
 export interface TeamPlayer {
   id: number;
-  firstName: string;
-  lastName: string;
+
+  /** Full name (e.g., "John Smith") - NEW field */
+  name: string;
+
+  /** DUPR singles rating - NEW field */
+  singlesRating: number | null;
+
+  /** DUPR doubles rating - NEW field */
+  doublesRating: number | null;
+
+  /** Legacy rating field - kept for compatibility */
   duprRating: number | null;
-  position: 1 | 2;
+
+  /** Position in team (1 or 2 for doubles) */
+  position: number;
+
+  // DEPRECATED - May exist in old responses
+  /** @deprecated Use 'name' field instead */
+  firstName?: string;
+  /** @deprecated Use 'name' field instead */
+  lastName?: string;
 }
 
 // Team source tracking (Day 1: Backend Foundation)
@@ -36,7 +57,8 @@ export interface Team {
 
 // Create team DTO (sent to backend)
 export interface CreateTeamDto {
-  name: string;
+  name?: string; // Optional - auto-generated from player names if not provided
+  playerIds?: number[]; // NEW: Array of 1-2 player IDs for manual team creation
   poolId?: number | null;
   poolSeed?: number | null;
 }

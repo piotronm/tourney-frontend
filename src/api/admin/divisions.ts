@@ -50,11 +50,47 @@ export const getDivisions = async (
   tournamentId: number,
   params?: DivisionListParams
 ): Promise<PaginatedDivisions> => {
-  const response = await apiClient.get<PaginatedDivisions>(
+  // Use adminApiClient to get full stats including registeredPlayers
+  const response = await adminApiClient.get<{
+    divisions: Array<{
+      id: number;
+      tournament_id: number;
+      name: string;
+      format: string;
+      format_config: any;
+      created_at: string;
+      updated_at: string;
+      stats: {
+        registeredPlayers: number;
+        teams: number;
+        pools: number;
+        matches: number;
+        completedMatches: number;
+      };
+    }>;
+    total: number;
+    limit: number;
+    offset: number;
+  }>(
     `/tournaments/${tournamentId}/divisions`,
     { params }
   );
-  return response.data;
+
+  // Transform backend snake_case to frontend camelCase
+  return {
+    data: response.data.divisions.map(div => ({
+      id: div.id,
+      name: div.name,
+      createdAt: div.created_at,
+      updatedAt: div.updated_at,
+      stats: div.stats,
+    })),
+    meta: {
+      total: response.data.total,
+      limit: response.data.limit,
+      offset: response.data.offset
+    }
+  };
 };
 
 /**
@@ -67,10 +103,34 @@ export const getDivision = async (
   tournamentId: number,
   divisionId: number
 ): Promise<Division> => {
-  const response = await apiClient.get<Division>(
+  // Use adminApiClient to get full stats including registeredPlayers
+  const response = await adminApiClient.get<{
+    id: number;
+    tournament_id: number;
+    name: string;
+    format: string;
+    format_config: any;
+    created_at: string;
+    updated_at: string;
+    stats: {
+      registeredPlayers: number;
+      teams: number;
+      pools: number;
+      matches: number;
+      completedMatches: number;
+    };
+  }>(
     `/tournaments/${tournamentId}/divisions/${divisionId}`
   );
-  return response.data;
+
+  // Transform backend snake_case to frontend camelCase
+  return {
+    id: response.data.id,
+    name: response.data.name,
+    createdAt: response.data.created_at,
+    updatedAt: response.data.updated_at,
+    stats: response.data.stats,
+  };
 };
 
 /**

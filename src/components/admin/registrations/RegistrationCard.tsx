@@ -21,6 +21,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { Registration } from '@/types/registration';
 import { UnregisterDialog } from './UnregisterDialog';
+import { formatDuprRating } from '@/utils/formatters';
 
 interface RegistrationCardProps {
   registration: Registration;
@@ -78,27 +79,27 @@ export function RegistrationCard({ registration, tournamentId }: RegistrationCar
             <Box sx={{ flex: 1 }}>
               {/* Player Name */}
               <Typography variant="h6">
-                {registration.player.firstName} {registration.player.lastName}
+                {registration.player.name}
                 {registration.partner && (
                   <>
                     {' + '}
-                    {registration.partner.firstName} {registration.partner.lastName}
+                    {registration.partner.name}
                   </>
                 )}
               </Typography>
 
-              {/* DUPR Ratings */}
+              {/* DUPR Ratings - Use doublesRating for doubles divisions */}
               <Typography variant="body2" color="text.secondary">
-                DUPR: {registration.player.duprRating || 'N/A'}
+                Doubles: {formatDuprRating(registration.player.doublesRating)}
                 {registration.partner && (
-                  <> / {registration.partner.duprRating || 'N/A'}</>
+                  <> / {formatDuprRating(registration.partner.doublesRating)}</>
                 )}
-                {registration.partner && registration.player.duprRating && registration.partner.duprRating && (
+                {registration.partner && registration.player.doublesRating && registration.partner.doublesRating && (
                   <>
                     {' '}
                     (Avg:{' '}
                     {(
-                      (registration.player.duprRating + registration.partner.duprRating) /
+                      (registration.player.doublesRating + registration.partner.doublesRating) /
                       2
                     ).toFixed(2)}
                     )

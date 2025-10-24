@@ -11,6 +11,7 @@ import {
   createPlayer,
   updatePlayer,
   deletePlayer,
+  deleteAllPlayers,
 } from '@/api/players';
 import type { CreatePlayerInput, UpdatePlayerInput } from '@/types/player';
 
@@ -112,6 +113,28 @@ export function useDeletePlayer() {
       } else {
         toast.error('Failed to delete player');
       }
+    },
+  });
+}
+
+/**
+ * Delete all players mutation (development only)
+ * WARNING: This permanently deletes ALL players from the database
+ */
+export function useDeleteAllPlayers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteAllPlayers,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+      toast.success(`Successfully deleted ${data.deletedCount} players`, {
+        duration: 3000,
+      });
+    },
+    onError: (error: Error) => {
+      const message = error.message || 'Failed to delete all players';
+      toast.error(message);
     },
   });
 }

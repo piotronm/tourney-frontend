@@ -14,21 +14,31 @@ import {
   Stack,
   Alert,
   AlertTitle,
-  CircularProgress
+  CircularProgress,
+  Avatar,
+  Paper,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Person as PersonIcon,
   People as PeopleIcon,
-  Search as SearchIcon,
-  GroupAdd as GroupAddIcon,
-  Info as InfoIcon
+  Email as EmailIcon,
+  Badge as BadgeIcon,
+  Event as EventIcon,
+  Edit as EditIcon,
+  PersonRemove as PersonRemoveIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
-import { useRegistrations } from '@/hooks/admin/useRegistrations';
+import axios from 'axios';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { useRegistrations, useDeleteRegistration } from '@/hooks/admin/useRegistrations';
 import { useTournament } from '@/hooks/admin/useTournament';
-import { useGenerateTeamsFromRegistrations } from '@/hooks/admin/useGenerateTeamsFromRegistrations';
 import { RegisterPlayerModal } from '@/components/admin/registrations/RegisterPlayerModal';
-import { RegistrationCard } from '@/components/admin/registrations/RegistrationCard';
+import { EditDivisionsDialog } from '@/components/admin/registrations/EditDivisionsDialog';
 import { ContextBar } from '@/components/admin/ContextBar';
 import type { Registration } from '@/types/registration';
 
@@ -40,34 +50,17 @@ export function TournamentRegistrationsPage() {
   const tournamentId = parseInt(tournamentIdStr || '0');
 
   // State hooks
-  const [divisionFilter, setDivisionFilter] = useState<string>('all');
-  const [pairingFilter, setPairingFilter] = useState<string>('all');
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [editDivisionsDialogOpen, setEditDivisionsDialogOpen] = useState(false);
+  const [selectedRegistrationForEdit, setSelectedRegistrationForEdit] = useState<Registration | null>(null);
 
   // Data fetching hooks
   const { data: tournament } = useTournament(tournamentId);
-  const { data, isLoading, error } = useRegistrations(tournamentId, {
-    divisionId: divisionFilter !== 'all' ? parseInt(divisionFilter) : undefined,
-    pairingType: pairingFilter !== 'all' ? pairingFilter : undefined
-  });
+  const { data, isLoading, error } = useRegistrations(tournamentId);
 
   // Mutation hooks
-  const generateTeamsMutation = useGenerateTeamsFromRegistrations();
-
-  // Computed values (useMemo) - MUST be before any conditional returns
-  const eligibleRegistrations = useMemo(() => {
-    const regs = data?.data || [];
-    return regs.filter(
-      r =>
-        r.pairingType === 'has_partner' &&
-        r.status === 'registered' &&
-        !r.teamId
-    );
-  }, [data]);
-
-  const eligibleCount = useMemo(() => {
-    return eligibleRegistrations.length;
-  }, [eligibleRegistrations]);
+  const { mutate: unregisterPlayer } = useDeleteRegistration(tournamentId);
+  const queryClient = useQueryClient();
 
   const registrations = useMemo(() => {
     return data?.data || [];
@@ -77,43 +70,116 @@ export function TournamentRegistrationsPage() {
     return data?.meta;
   }, [data]);
 
-  // ========== LOGIC SECTION (AFTER ALL HOOKS) ==========
-  // DEBUG: Verify tournament ID is extracted correctly
-  console.log('=== REGISTRATIONS PAGE DEBUG ===');
-  console.log('URL params:', params);
-  console.log('tournamentId string:', tournamentIdStr);
-  console.log('tournamentId parsed:', tournamentId);
-  console.log('================================');
+  // Helper functions
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
-  // Handler for Generate Teams button
-  const handleGenerateTeams = () => {
-    if (eligibleCount === 0) {
-      return;
+  const formatDuprRating = (rating: number) => {
+    return rating.toFixed(2);
+  };
+
+  const formatDate = (timestamp: string | number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDateCompact = (timestamp: string | number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    // If within last 24 hours, show "X hours ago"
+    if (diffDays === 0) {
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      if (diffHours === 0) {
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        return `${diffMins}m ago`;
+      }
+      return `${diffHours}h ago`;
     }
 
-    // Get the selected division or use the first division from eligible registrations
-    const selectedDivisionId = divisionFilter !== 'all'
-      ? parseInt(divisionFilter)
-      : eligibleRegistrations[0]?.divisionId;
-
-    if (!selectedDivisionId) {
-      alert('Please select a division first');
-      return;
+    // If within last 7 days, show "X days ago"
+    if (diffDays < 7) {
+      return `${diffDays}d ago`;
     }
 
-    // Confirmation dialog
+    // Otherwise show compact date
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
+  };
+
+  const handleEditDivisions = (registration: Registration) => {
+    setSelectedRegistrationForEdit(registration);
+    setEditDivisionsDialogOpen(true);
+  };
+
+  const handleUnregisterPlayer = (registration: Registration) => {
+    const divisionsList = registration.divisions.map(d => d.divisionName).join(', ');
+
     const confirmed = window.confirm(
-      `Generate teams for ${eligibleCount} registration${eligibleCount !== 1 ? 's' : ''}?\n\n` +
-      'This will automatically create teams for all players with partners who don\'t have teams yet.'
+      `⚠️ UNREGISTER PLAYER\n\n` +
+      `Player: ${registration.playerName}\n` +
+      `Divisions: ${divisionsList}\n\n` +
+      `This will completely remove this player from the tournament as if they never signed up.\n\n` +
+      `Are you sure you want to unregister this player?`
     );
 
-    if (confirmed) {
-      generateTeamsMutation.mutate({
-        tournamentId,
-        divisionId: selectedDivisionId
+    if (!confirmed) return;
+
+    unregisterPlayer(registration.registrationId);
+  };
+
+  const handleRemoveDivision = async (
+    playerId: number,
+    divisionId: number,
+    divisionName: string,
+    playerName: string
+  ) => {
+    const confirmed = window.confirm(
+      `Remove ${playerName} from ${divisionName}?\n\n` +
+      `If they are on a team in this division, you must remove them from the team first.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Use admin API endpoint (remove /public if present)
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/public';
+      const API_BASE = API_BASE_URL.replace('/api/public', '/api');
+
+      await axios.delete(
+        `${API_BASE}/tournaments/${tournamentId}/players/${playerId}/divisions/${divisionId}`,
+        { withCredentials: true }
+      );
+
+      // Refresh the registrations list
+      queryClient.invalidateQueries({
+        queryKey: ['registrations', Number(tournamentId)]
       });
+
+      toast.success(`${playerName} removed from ${divisionName}`);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to remove player from division';
+      toast.error(errorMessage);
     }
   };
+
 
   // Conditional returns AFTER all hooks
   if (isLoading) {
@@ -132,20 +198,6 @@ export function TournamentRegistrationsPage() {
     );
   }
 
-  // Group registrations by division
-  const divisionGroups = registrations.reduce((acc, reg) => {
-    const divisionName = reg.divisionName || 'Unknown Division';
-    if (!acc[divisionName]) {
-      acc[divisionName] = [];
-    }
-    acc[divisionName].push(reg);
-    return acc;
-  }, {} as Record<string, Registration[]>);
-
-  // Get unique divisions for filter
-  const divisions = Array.from(
-    new Set(registrations.map(r => r.divisionName).filter(Boolean))
-  );
 
   return (
     <Box>
@@ -164,35 +216,13 @@ export function TournamentRegistrationsPage() {
           <Typography variant="h5">
             Registrations ({stats?.total || 0})
           </Typography>
-          <Stack direction="row" spacing={2}>
-            {/* Generate Teams Button - Show if there are eligible registrations */}
-            {eligibleCount > 0 && (
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={
-                  generateTeamsMutation.isPending ? (
-                    <CircularProgress size={20} color="inherit" />
-                  ) : (
-                    <GroupAddIcon />
-                  )
-                }
-                onClick={handleGenerateTeams}
-                disabled={generateTeamsMutation.isPending}
-              >
-                {generateTeamsMutation.isPending
-                  ? 'Generating...'
-                  : `Generate Teams (${eligibleCount})`}
-              </Button>
-            )}
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setRegisterModalOpen(true)}
-            >
-              Register Player
-            </Button>
-          </Stack>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setRegisterModalOpen(true)}
+          >
+            Register Player
+          </Button>
         </Box>
 
         {/* Statistics Chips */}
@@ -200,68 +230,13 @@ export function TournamentRegistrationsPage() {
           <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
             <Chip
               icon={<PeopleIcon />}
-              label={`${stats.byPairingType.has_partner} With Partners`}
-              color="success"
-              variant="outlined"
-            />
-            <Chip
-              icon={<SearchIcon />}
-              label={`${stats.byPairingType.needs_partner} Needs Partner`}
-              color="warning"
-              variant="outlined"
-            />
-            <Chip
-              icon={<PersonIcon />}
-              label={`${stats.byPairingType.solo} Solo`}
-              color="info"
+              label={`${stats.totalDivisionAssignments} Division Assignments`}
+              color="primary"
               variant="outlined"
             />
           </Stack>
         )}
-
-        {/* Filters */}
-        <Stack direction="row" spacing={2}>
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Division</InputLabel>
-            <Select
-              value={divisionFilter}
-              label="Division"
-              onChange={(e) => setDivisionFilter(e.target.value)}
-            >
-              <MenuItem value="all">All Divisions</MenuItem>
-              {divisions.map((div) => (
-                <MenuItem key={div} value={div}>
-                  {div}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Pairing Type</InputLabel>
-            <Select
-              value={pairingFilter}
-              label="Pairing Type"
-              onChange={(e) => setPairingFilter(e.target.value)}
-            >
-              <MenuItem value="all">All Types</MenuItem>
-              <MenuItem value="has_partner">Has Partner</MenuItem>
-              <MenuItem value="needs_partner">Needs Partner</MenuItem>
-              <MenuItem value="solo">Solo</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
       </Box>
-
-      {/* Info Alert for Eligible Registrations */}
-      {eligibleCount > 0 && (
-        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 3 }}>
-          <AlertTitle>Registrations Ready for Teams</AlertTitle>
-          {eligibleCount} registration{eligibleCount !== 1 ? 's' : ''} with
-          partners can be converted to teams automatically. Click "Generate
-          Teams" to create them all at once.
-        </Alert>
-      )}
 
       {/* Registration List */}
       {registrations.length === 0 ? (
@@ -283,75 +258,164 @@ export function TournamentRegistrationsPage() {
           </CardContent>
         </Card>
       ) : (
-        <>
-          {Object.entries(divisionGroups).map(([divisionName, divRegs]) => (
-            <Box key={divisionName} sx={{ mb: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                {divisionName} ({divRegs.length} {divRegs.length === 1 ? 'player' : 'players'})
-              </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {registrations.map((registration) => (
+            <Paper
+              key={registration.playerId}
+              elevation={0}
+              sx={{
+                px: 2,
+                py: 1.5,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  bgcolor: 'action.hover',
+                  boxShadow: 1,
+                },
+              }}
+            >
+              {/* Row 1: Player Info (Name, Rating, DUPR ID) + Actions */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                {/* Avatar - Smaller */}
+                <Avatar sx={{ width: 32, height: 32, fontSize: '0.875rem', bgcolor: 'primary.main' }}>
+                  {getInitials(registration.playerName)}
+                </Avatar>
 
-              <Stack spacing={2}>
-                {/* Group by pairing type within division */}
-                {divRegs.filter(r => r.pairingType === 'has_partner').length > 0 && (
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                      Teams with Partners
+                {/* Player Name + Rating + DUPR ID */}
+                <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {registration.playerName}
+                  </Typography>
+
+                  {registration.playerDuprRating && (
+                    <Chip
+                      label={formatDuprRating(registration.playerDuprRating)}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ height: 18, fontSize: '0.7rem', fontWeight: 600 }}
+                    />
+                  )}
+
+                  {registration.playerDuprId && (
+                    <Chip
+                      icon={<BadgeIcon sx={{ fontSize: 12 }} />}
+                      label={registration.playerDuprId}
+                      size="small"
+                      variant="outlined"
+                      sx={{ height: 18, fontSize: '0.7rem' }}
+                    />
+                  )}
+                </Box>
+
+                {/* Compact Action Buttons */}
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <Tooltip title="Edit divisions">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleEditDivisions(registration)}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        '&:hover': { bgcolor: 'primary.light', color: 'primary.contrastText' }
+                      }}
+                    >
+                      <EditIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title="Unregister player">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleUnregisterPlayer(registration)}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        '&:hover': { bgcolor: 'error.light', color: 'error.contrastText' }
+                      }}
+                    >
+                      <PersonRemoveIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Box>
+
+              {/* Row 2: Contact Info + Date (Very Compact) */}
+              <Box
+                sx={{
+                  pl: 5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  flexWrap: 'wrap'
+                }}
+              >
+                {registration.playerEmail && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                    <EmailIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                      {registration.playerEmail}
                     </Typography>
-                    <Stack spacing={1}>
-                      {divRegs
-                        .filter(r => r.pairingType === 'has_partner')
-                        .map(reg => (
-                          <RegistrationCard
-                            key={reg.id}
-                            registration={reg}
-                            tournamentId={tournamentId}
-                          />
-                        ))}
-                    </Stack>
                   </Box>
                 )}
 
-                {divRegs.filter(r => r.pairingType === 'needs_partner').length > 0 && (
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                      Needs Partner
-                    </Typography>
-                    <Stack spacing={1}>
-                      {divRegs
-                        .filter(r => r.pairingType === 'needs_partner')
-                        .map(reg => (
-                          <RegistrationCard
-                            key={reg.id}
-                            registration={reg}
-                            tournamentId={tournamentId}
-                          />
-                        ))}
-                    </Stack>
-                  </Box>
-                )}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                  <EventIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                    {formatDateCompact(registration.registeredAt)}
+                  </Typography>
+                </Box>
+              </Box>
 
-                {divRegs.filter(r => r.pairingType === 'solo').length > 0 && (
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                      Solo Players
+              {/* Row 3: Division Chips (Smaller) */}
+              <Box sx={{ pl: 5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontSize: '0.7rem', mr: 0.5 }}
+                  >
+                    Divisions:
+                  </Typography>
+
+                  {registration.divisions.length > 0 ? (
+                    registration.divisions.map((div) => (
+                      <Chip
+                        key={div.divisionId}
+                        label={div.divisionName}
+                        size="small"
+                        color={div.teamId ? 'success' : 'warning'}
+                        variant="outlined"
+                        icon={div.teamId ? <CheckCircleIcon sx={{ fontSize: 12 }} /> : <WarningIcon sx={{ fontSize: 12 }} />}
+                        onDelete={() => handleRemoveDivision(
+                          registration.playerId,
+                          div.divisionId,
+                          div.divisionName,
+                          registration.playerName
+                        )}
+                        deleteIcon={<CloseIcon sx={{ fontSize: 14 }} />}
+                        sx={{
+                          height: 20,
+                          fontSize: '0.7rem',
+                          '& .MuiChip-label': { px: 1 }
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', fontStyle: 'italic' }}>
+                      None
                     </Typography>
-                    <Stack spacing={1}>
-                      {divRegs
-                        .filter(r => r.pairingType === 'solo')
-                        .map(reg => (
-                          <RegistrationCard
-                            key={reg.id}
-                            registration={reg}
-                            tournamentId={tournamentId}
-                          />
-                        ))}
-                    </Stack>
-                  </Box>
-                )}
-              </Stack>
-            </Box>
+                  )}
+                </Box>
+              </Box>
+            </Paper>
           ))}
-        </>
+        </Box>
       )}
 
       {/* Register Player Modal */}
@@ -360,6 +424,19 @@ export function TournamentRegistrationsPage() {
         tournamentId={tournamentId}
         onClose={() => setRegisterModalOpen(false)}
       />
+
+      {/* Edit Divisions Dialog */}
+      {selectedRegistrationForEdit && (
+        <EditDivisionsDialog
+          open={editDivisionsDialogOpen}
+          onClose={() => {
+            setEditDivisionsDialogOpen(false);
+            setSelectedRegistrationForEdit(null);
+          }}
+          registration={selectedRegistrationForEdit}
+          tournamentId={tournamentId}
+        />
+      )}
     </Box>
   );
 }

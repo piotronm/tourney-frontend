@@ -17,6 +17,7 @@ export interface Division {
 
 // Division statistics
 export interface DivisionStats {
+  registeredPlayers: number;
   teams: number;
   pools: number;
   matches: number;

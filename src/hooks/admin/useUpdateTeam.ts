@@ -30,6 +30,10 @@ export const useUpdateTeam = () => {
       queryClient.invalidateQueries({
         queryKey: ['admin-team', variables.tournamentId, variables.divisionId, team.id],
       });
+      // Invalidate pools (team assignments affect pool display)
+      queryClient.invalidateQueries({
+        queryKey: ['admin-pools', variables.tournamentId, variables.divisionId],
+      });
       toast.success(`Team "${team.name}" updated successfully!`);
     },
     onError: (error: Error) => {

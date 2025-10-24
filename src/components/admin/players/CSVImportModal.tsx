@@ -92,6 +92,8 @@ export function CSVImportModal({ open, onClose }: CSVImportModalProps) {
     switch (status) {
       case 'valid':
         return <CheckIcon color="success" fontSize="small" />;
+      case 'update':
+        return <CheckIcon color="info" fontSize="small" />;
       case 'duplicate':
         return <WarningIcon color="warning" fontSize="small" />;
       case 'invalid':
@@ -109,10 +111,21 @@ export function CSVImportModal({ open, onClose }: CSVImportModalProps) {
         {/* Step 1: Upload */}
         {step === 'upload' && (
           <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Upload a CSV file with player data. The file should include columns for:
-              Email, First Name, Last Name, Phone, DUPR ID, and DUPR Rating.
-            </Typography>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <AlertTitle>CSV Import Instructions</AlertTitle>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Required columns:</strong> Name (or First Name + Last Name)
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Optional columns:</strong> Email, Phone, DUPR ID, Singles Rating, Doubles Rating
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Update behavior:</strong> If a player with the same DUPR ID exists, their information will be updated. Otherwise, a new player will be created.
+              </Typography>
+              <Typography variant="body2">
+                <strong>Skip behavior:</strong> Rows with duplicate emails or invalid data will be skipped automatically.
+              </Typography>
+            </Alert>
 
             <Box
               sx={{
@@ -156,10 +169,18 @@ export function CSVImportModal({ open, onClose }: CSVImportModalProps) {
             <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
               <Chip
                 icon={<CheckIcon />}
-                label={`${previewData.validRows} Valid`}
+                label={`${previewData.validRows} New`}
                 color="success"
                 variant="outlined"
               />
+              {previewData.updateRows > 0 && (
+                <Chip
+                  icon={<CheckIcon />}
+                  label={`${previewData.updateRows} Will Update`}
+                  color="info"
+                  variant="outlined"
+                />
+              )}
               <Chip
                 icon={<WarningIcon />}
                 label={`${previewData.duplicates} Duplicates`}
@@ -192,10 +213,14 @@ export function CSVImportModal({ open, onClose }: CSVImportModalProps) {
                       <TableCell>{row.rowNumber}</TableCell>
                       <TableCell>{getStatusIcon(row.status)}</TableCell>
                       <TableCell>
-                        {row.data.firstName} {row.data.lastName}
+                        {row.data.name || `${row.data.firstName || ''} ${row.data.lastName || ''}`.trim()}
                       </TableCell>
                       <TableCell>{row.data.email || '-'}</TableCell>
-                      <TableCell>{row.data.duprRating || '-'}</TableCell>
+                      <TableCell>
+                        {row.data.doublesRating ? row.data.doublesRating.toFixed(1) :
+                         row.data.singlesRating ? row.data.singlesRating.toFixed(1) :
+                         row.data.duprRating || '-'}
+                      </TableCell>
                       <TableCell>
                         {row.errors.length > 0 && (
                           <Typography variant="caption" color="error">
@@ -216,8 +241,20 @@ export function CSVImportModal({ open, onClose }: CSVImportModalProps) {
             )}
 
             <Alert severity="info" sx={{ mt: 2 }}>
-              <AlertTitle>Import will create {previewData.validRows} new players</AlertTitle>
-              Duplicates and invalid rows will be skipped automatically.
+              <AlertTitle>
+                Import will{' '}
+                {previewData.validRows > 0 && (
+                  <>create {previewData.validRows} new player{previewData.validRows !== 1 ? 's' : ''}</>
+                )}
+                {previewData.validRows > 0 && previewData.updateRows > 0 && <> and </>}
+                {previewData.updateRows > 0 && (
+                  <>update {previewData.updateRows} existing player{previewData.updateRows !== 1 ? 's' : ''}</>
+                )}
+              </AlertTitle>
+              {previewData.updateRows > 0
+                ? 'Players with matching DUPR IDs will be updated. Email duplicates and invalid rows will be skipped.'
+                : 'Duplicates and invalid rows will be skipped automatically.'
+              }
             </Alert>
           </Box>
         )}
@@ -243,9 +280,12 @@ export function CSVImportModal({ open, onClose }: CSVImportModalProps) {
               Import Complete!
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Successfully imported {importResult.imported} players
+              Successfully created {importResult.imported} new player{importResult.imported !== 1 ? 's' : ''}
+              {importResult.updated > 0 && (
+                <> and updated {importResult.updated} existing player{importResult.updated !== 1 ? 's' : ''}</>
+              )}
               {importResult.skipped > 0 && (
-                <>, skipped {importResult.skipped} duplicates</>
+                <>, skipped {importResult.skipped} duplicate{importResult.skipped !== 1 ? 's' : ''}</>
               )}
               {importResult.failed > 0 && (
                 <>, {importResult.failed} failed</>
@@ -275,9 +315,9 @@ export function CSVImportModal({ open, onClose }: CSVImportModalProps) {
             <Button
               variant="contained"
               onClick={handleImport}
-              disabled={!previewData || previewData.validRows === 0}
+              disabled={!previewData || (previewData.validRows === 0 && previewData.updateRows === 0)}
             >
-              Import {previewData?.validRows} Players
+              Import {(previewData?.validRows || 0) + (previewData?.updateRows || 0)} Players
             </Button>
           </>
         )}
